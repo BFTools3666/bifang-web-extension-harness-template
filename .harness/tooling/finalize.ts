@@ -297,10 +297,10 @@ export function validateProjectConfig(value: unknown): ProjectConfig {
 }
 
 /** 说明 loadProjectConfig 的稳定结构与职责边界。 */
-export async function loadProjectConfig(root: string): Promise<ProjectConfig> {
+export async function loadProjectConfig(root: string, memberDirectory?: string): Promise<ProjectConfig> {
   try { return validateProjectConfig(await readJson<unknown>(path.join(root, PROJECT_CONFIG_PATH))) }
   catch (error) {
-    if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") return loadWorkspaceProjectConfig(root, loadProjectConfig)
+    if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") return loadWorkspaceProjectConfig(root, loadProjectConfig, memberDirectory)
     throw error
   }
 }

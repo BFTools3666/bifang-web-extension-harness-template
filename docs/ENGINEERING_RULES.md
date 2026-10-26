@@ -15,6 +15,7 @@
 - 新创建下游以 Workspace 为唯一策略与 PRD 根，Git 可选且启用时只归根管理，拓扑、服务归属和命名以 [WORKSPACE_TEMPLATE.md](WORKSPACE_TEMPLATE.md) 为准；这取代旧的平铺单包互斥限制。
 - 根 package.json 包装成员，pnpm-workspace.yaml 精确声明选中前端成员及构建许可；Go 依赖归 _server 的 go.mod/go.sum。各前端成员仍是单包，拥有唯一 projectType；不跨成员导入源码或建立共享 core。
 - 根标识为 ASCII kebab-case；成员目录与身份使用 _web、_extension、_server 后缀。Workspace 元数据和成员身份共同校验，不从目录猜测已选成员。
+- 同一 Workspace 可有多个 Web / Extension；新增必须使用用户明确给出的新名称，按精确成员目录区分，不能自动编号或复用旧名。追加入口及命令、服务、归档与恢复合同见 WORKSPACE_TEMPLATE.md 的“在同一 Workspace 追加前端”。
 - 前端 .harness/project.json 与 Logo 母版仍是本成员身份与品牌的唯一来源；不在成员创建嵌套 Git、独立策略或第二份产品规格。
 - 初始化保持确定性、源外空目标、sibling staging、身份绑定、失败回收和一次原子发布；所有成员完成后才统一安装依赖；Git 不作为初始化前置，默认不建仓或提交。
 

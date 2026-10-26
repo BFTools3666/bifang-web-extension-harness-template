@@ -19,7 +19,7 @@ Bifang Web Harness Template 是用于创建和维护 Web、Extension 与 Go 服�
 以下提示词可直接复制使用：
 
 ```text
-请根据 https://github.com/BFTools366/bifang-web-extension-harness-template 为我创建一个独立下游项目。
+请根据 https://github.com/BFTools3666/bifang-web-extension-harness-template 为我创建一个独立下游项目。
 请先获取模板源码，读取 AGENTS.md，并按仓库内的 web-instantiate-project Skill 执行。
 使用固定初始化表单，每轮只问一项，保持问题名称和题面固定，每个选项后用括号解释含义。
 已经提供的合法信息直接复用，只补问缺失或非法项。
@@ -73,6 +73,8 @@ Logo、品牌色和身份本地化可一并提供。Agent 结合产品名称与�
 
 唯一公开创建入口是模板源根目录中的 `pnpm instantiate`。完整命令、必需参数和预检规则见[创建与内部初始化契约](docs/TS_WEB_TEMPLATE.md#2-创建与内部初始化契约)；执行流程由[实例化 Skill](.agents/skills/web-instantiate-project/SKILL.md)负责。
 
+同一 Workspace 可以继续增加多个 Web / Extension，但每个新增成员必须由用户提供不同的新名字。源 Harness 中运行 `pnpm instantiate -- --workspace /absolute/workspace --type web --name "Admin Console"`；中文名另传英文译名，Extension 另传 `--description`。新成员复用根服务、策略与 PRD，详情见[追加前端](docs/WORKSPACE_TEMPLATE.md#在同一-workspace-追加前端)。
+
 开发工具最低声明为 Node.js `>=24.0.0`、pnpm `>=12.8.1`，`packageManager` 固定为 `pnpm@12.8.1`；Git 可选；自建服务需要 Go >=1.26.0。版本事实以 [package.json](package.json) 为准。当前测试依赖 `jsdom 30.1.1` 在 Node 24 系列要求 `24.15.0+`。
 
 Node.js、pnpm 与独立 CLI 工具全局安装或升级；React、Vite 等项目运行时/开发依赖按 manifest 与锁文件安装在项目内，项目脚本使用声明版本。实际工具变更后核对版本与可执行文件路径；安装或升级范围沿用已有授权。
@@ -83,7 +85,7 @@ Node.js、pnpm 与独立 CLI 工具全局安装或升级；React、Vite 等项�
 
 新页面、影响页面或流程的需求变更，以及明确的设计、视觉、布局或风格修改，先生成或修订一个桌面交互原型，自查后展示预览并等待用户反馈，再实施。产品范围变化时先更新 PRD，纯视觉变更复用有效 PRD；纯逻辑修复、文案纠错或恢复已确认设计的缺陷可直接处理。完整创建的工程/产品范围确认不能代替原型确认；首版原型展示后必须等待用户明确确认，再进行前后端开发和业务测试。需求原文按[输入与交接合同](.agents/skills/web-instantiate-project/references/requirements-intake.md)保留，已有分析和建议直接沿用。首页由实际需求实现；基础主界面始终接入宿主路由，所选能力必须完成固定页面及代码接线。
 
-以下命令在生成的 Workspace 根目录运行，`<member>` 为已选成员 `web`、`extension` 或 `server`：
+以下命令在生成的 Workspace 根目录运行，`<member>` 优先使用精确成员目录（例如 `admin-console_web`）；`web`、`extension` 或 `server` 简写仅在该类型唯一时有效：
 
 | 命令                                             | 用途                                                                   |
 | ------------------------------------------------ | ---------------------------------------------------------------------- |
@@ -92,7 +94,7 @@ Node.js、pnpm 与独立 CLI 工具全局安装或升级；React、Vite 等项�
 | `pnpm build -- --member <member> --e2e=enabled`  | 构建指定成员的正式产物并要求 E2E 验证；根 `build` 必须指定成员。       |
 | `pnpm build -- --member <member> --e2e=disabled` | 同上，不执行可选 E2E；适用的浏览器硬要求仍须满足。                     |
 
-Workspace 根还提供 `pnpm release` 与 `pnpm release:<member>`，将已选成员统一打包到 `release/web.zip`、`extension.zip`、`server.zip`。Server 打包前必须选择平台，例如 `pnpm release:server -- --platform=linux/amd64`；Web 解压为 `<id>_web/`，扩展包含 chrome/ 与 firefox/，Server 仅二进制和 config.yaml。详见 [归档合同](docs/WORKSPACE_TEMPLATE.md#本地发布归档)。
+Workspace 根还提供 `pnpm release` 与 `pnpm release:<member>`，首次标准成员打包到 `release/web.zip`、`extension.zip`、`server.zip`，追加前端使用 `release/<member-directory>.zip`，类型简写只在唯一时有效。Server 打包前必须选择平台，例如 `pnpm release:server -- --platform=linux/amd64`；Web 解压为 `<id>_web/`，扩展包含 chrome/ 与 firefox/，Server 仅二进制和 config.yaml。详见 [归档合同](docs/WORKSPACE_TEMPLATE.md#本地发布归档)。
 
 以下命令在前端成员目录（如 `<id>_web/`、`<id>_extension/`）运行：
 

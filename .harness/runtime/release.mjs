@@ -7,6 +7,19 @@ import { parseEnv } from "node:util"
 import { URL } from "node:url"
 import path from "node:path"
 import { archiveEntries, writeZip } from "./archive.mjs"
+/** 精确目录优先；类型简写仅在唯一时有效，避免误构建同类成员。 */
+export function selectWorkspaceMembers(config, target) {
+  if (!target) return config.members
+  const exact = config.members.find((member) => member.directory === target)
+  if (exact) return [exact]
+  const members = config.members.filter((member) => member.type === target)
+  if (!members.length) throw new Error(`未选择的成员：${target}`)
+  if (members.length !== 1)
+    throw new Error(
+      `成员类型 ${target} 有多个对象，请指定目录：${members.map((item) => item.directory).join("、")}`
+    )
+  return members
+}
 
 export const SERVER_PLATFORMS = [
   "linux/amd64",
@@ -37,8 +50,13 @@ export function parseReleaseArguments(argv) {
       throw new Error(`非法或重复发布参数：${item}`)
     result[name] = value
   }
-  if (result.member && !["web", "extension", "server"].includes(result.member))
-    throw new Error("--member 必须是 web、extension 或 server")
+  if (
+    result.member &&
+    !/^(?:web|extension|server|[a-z][a-z0-9]*(?:-[a-z0-9]+)*_(?:web|extension|server))$/u.test(
+      result.member
+    )
+  )
+    throw new Error("--member 必须是成员目录或唯一类型简写")
   if (result.platform && !SERVER_PLATFORMS.includes(result.platform))
     throw new Error(`--platform 必须是 ${SERVER_PLATFORMS.join("、")}`)
   if (result.e2e && !["enabled", "disabled"].includes(result.e2e))
@@ -308,7 +326,7 @@ export async function prepareReleaseBaseUrl(
 /** 复用成员构建门禁并逐个原子发布 ZIP；本地打包不会执行上传、部署或商店发布。 */
 export async function releaseWorkspace(root, config, argv, commands, interactive) {
   const args = parseReleaseArguments(argv)
-  const members = config.members.filter((member) => !args.member || member.type === args.member)
+  const members = selectWorkspaceMembers(config, args.member)
   if (!members.length) throw new Error(`未选择的成员：${args.member}`)
   const selections = await resolveReleaseSelections(args, members, interactive)
   commands.signal?.throwIfAborted()
@@ -340,7 +358,9 @@ export async function releaseWorkspace(root, config, argv, commands, interactive
   await safePath(directory, true)
   for (const member of members) {
     await verifyReleaseInputs(baseUrlSources)
-    const destination = path.join(directory, `${member.type}.zip`)
+    const archiveName =
+      member.directory === `${config.id}_${member.type}` ? member.type : member.directory
+    const destination = path.join(directory, `${archiveName}.zip`)
     await safePath(destination, false, true)
     const stage = await mkdtemp(path.join(directory, `.${member.type}-`))
     try {

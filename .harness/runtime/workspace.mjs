@@ -7,7 +7,7 @@ import { lstat, readFile, readdir, realpath } from "node:fs/promises"
 import path from "node:path"
 import { parseEnv } from "node:util"
 import { URL, fileURLToPath, pathToFileURL } from "node:url"
-import { releaseWorkspace } from "./release.mjs"
+import { releaseWorkspace, selectWorkspaceMembers } from "./release.mjs"
 
 /** 使用 Node >=24 自带的 Fetch 与取消信号，不引入运行时依赖。 */
 const { fetch, AbortSignal, AbortController } = globalThis
@@ -42,14 +42,20 @@ export async function readWorkspace(root) {
   )
     throw new Error("无效的 Workspace 身份")
   const types = new Set()
+  const directories = new Set()
   for (const member of config.members) {
     if (
+      !member ||
       !["web", "extension", "server"].includes(member.type) ||
-      types.has(member.type) ||
-      member.directory !== `${config.id}_${member.type}`
+      directories.has(member.directory) ||
+      (member.type === "server"
+        ? types.has("server") || member.directory !== `${config.id}_server`
+        : typeof member.directory !== "string" ||
+          !new RegExp(`^[a-z][a-z0-9]*(?:-[a-z0-9]+)*_${member.type}$`).test(member.directory))
     )
       throw new Error("无效、重复或越界的 Workspace 成员")
     types.add(member.type)
+    directories.add(member.directory)
     const directory = path.join(root, member.directory)
     const status = await lstat(directory)
     if (
@@ -63,7 +69,11 @@ export async function readWorkspace(root) {
       const identity = JSON.parse(
         await readFile(path.join(directory, ".harness/project.json"), "utf8")
       )
-      if (identity.projectType !== member.type || identity.id !== member.directory)
+      if (
+        identity.projectType !== member.type ||
+        identity.id !== member.directory ||
+        (member.name !== undefined && member.name !== identity.name)
+      )
         throw new Error("成员宿主或身份与 Workspace 不一致")
     } else if (
       (await readFile(path.join(directory, "go.mod"), "utf8")).split(/\r?\n/u)[0] !==
@@ -135,6 +145,16 @@ export async function readWorkspace(root) {
 const children = new Map()
 const cancellation = new AbortController()
 let stopping = false
+
+/** 为同类开发进程分配固定独立端口，Extension 预留 HMR reporter 的相邻端口。 */
+export function developmentArguments(config, member) {
+  const index = config.members
+    .filter((item) => item.type === member.type)
+    .findIndex((item) => item.directory === member.directory)
+  return member.type === "web"
+    ? ["--host", "127.0.0.1", "--port", String(5173 + index), "--strictPort"]
+    : [`--serve-port=${1012 + 2 * index}`, `--hmr-port=${1815 + 2 * index}`]
+}
 
 /** 停止所属进程树，避免 Go 编译器或浏览器开发进程遗留。 */
 function stopChild(child, force = false) {
@@ -234,19 +254,23 @@ export async function runWorkspace(argv, root) {
     return
   }
   const args = rest.filter((item) => item !== "--")
-  const index = args.indexOf("--member")
-  const target = index >= 0 ? args[index + 1] : undefined
-  if (index >= 0) args.splice(index, 2)
+  const selectors = args.filter((item) => item === "--member" || item.startsWith("--member="))
+  if (selectors.length > 1) throw new Error("--member 不能重复")
+  const index = args.findIndex((item) => item === "--member" || item.startsWith("--member="))
+  const target =
+    index < 0
+      ? undefined
+      : args[index].startsWith("--member=")
+        ? args.splice(index, 1)[0].slice(9)
+        : args.splice(index, 2)[1]
   if (!["validate", "dev", "test", "typecheck", "lint", "build"].includes(action))
     throw new Error("未知 Workspace 操作")
-  if (target && !config.members.some((item) => item.type === target))
-    throw new Error(`未选择的成员：${target}`)
   if (action === "build" && !target) throw new Error("build 必须用 --member 指定发布或编译对象")
   if (index >= 0 && !target) throw new Error("--member 需要已选成员")
   const structureOnly = args.includes("--structure-only")
   if (structureOnly && action !== "validate") throw new Error("--structure-only 仅用于结构校验")
   if (action === "validate" && structureOnly) return
-  const members = config.members.filter((item) => !target || item.type === target)
+  const members = selectWorkspaceMembers(config, target)
   if (action === "dev") {
     const running = []
     for (const member of [...members].sort((left) => (left.type === "server" ? -1 : 1))) {
@@ -263,17 +287,7 @@ export async function runWorkspace(argv, root) {
         await waitHealthy(config.service.developmentBaseUrl, server.done, instance)
       } else
         running.push(
-          pnpm(
-            [
-              "run",
-              "dev",
-              ...(member.type === "web"
-                ? ["--host", "127.0.0.1", "--port", "5173", "--strictPort"]
-                : []),
-              ...args
-            ],
-            cwd
-          ).done
+          pnpm(["run", "dev", ...developmentArguments(config, member), ...args], cwd).done
         )
     }
     await Promise.race(running)

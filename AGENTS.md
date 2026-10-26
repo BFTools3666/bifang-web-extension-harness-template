@@ -50,7 +50,7 @@
 - 除非用户明确说当前 Task 内部步骤、plan 或 Subagent，Task 一律指 Codex 左侧 user-owned Task，标题使用 `Task {序号} | {当前进度} | {单一结果}`，进度只取 `已分配`、`运行中`、`检查中`、`已完成`；序号分配、转换更新与复读只按 `docs/AGENT_POLICY.md`。内部 plan、Subagent、Worktree 不使用该标题合同，也不得虚写 `已完成`。
 - `user_owned_tasks: disabled` 时不得自动创建或拆分左侧 Task，但仍响应用户明确创建请求；`enabled` 时结果边界变化前自动创建。拆分条件与写入型 active Task 约束见 `docs/AGENT_POLICY.md`。
 - **模板目录门禁**：禁止在本模板根及任何子目录创建下游，包括演示、临时、测试项目及嵌套仓库/Worktree。请求路径和真实路径均须在源外，不能用手工复制、其他脚手架、符号链接或大小写别名绕过；源内位置零写入阻断，只补问用户源外父目录。Harness 自身维护仍在源内。新下游只经唯一公开实例化入口在源外空目录创建；事务成功后在下游完成首版，不产生最终候选。创建规则仅在创建任务中读取 `docs/TS_WEB_TEMPLATE.md` 与实例化 Skill。
-- 下游根为 Workspace，统一 package.json、策略与 PRD；Git 可选，启用时仅归根管理；按需创建 `<id>_web`、`<id>_extension`、`<id>_server`。前端成员各自单包、唯一宿主，成员间通过契约协作，不共享产品源码或保留工程派生入口；详见 `docs/WORKSPACE_TEMPLATE.md`，Go 见 `docs/GO_SERVICE.md`。
+- 下游根为 Workspace，统一 package.json、策略与 PRD；Git 可选，启用时仅归根管理；按需创建 `<id>_web`、`<id>_extension`、`<id>_server`；同根可追加多个 Web / Extension，新增必须由用户明确提供新名称。前端成员各自单包、唯一宿主，成员间通过契约协作，不共享产品源码或保留工程派生入口；详见 `docs/WORKSPACE_TEMPLATE.md`，Go 见 `docs/GO_SERVICE.md`。
 - 安全、隐私、Extension 权限、不可逆数据、生产/付费/凭据副作用、公开兼容契约、最终候选和正式发布进入对应专用门禁；发布授权与 E2E 复用规则见 `docs/AGENT_POLICY.md` 与 `docs/RELEASE.md`。
 - 对“完成”“可用”或“已验证”的声明必须来自真实可观察证据；Mock、stub、源码片段、中性脚手架或开发预览不能替代最终候选验收，人工批准也不能把失败或未执行改判为通过。
 - Extension 的 Chrome MV3 / Firefox MV2 兼容由执行 Agent 负责，约束见 `docs/TS_WEB_TEMPLATE.md` 与 `docs/ENGINEERING_RULES.md`；产品文案使用既有 i18n。

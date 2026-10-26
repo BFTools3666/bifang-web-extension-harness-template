@@ -6,7 +6,6 @@ import { createProjectConfig } from "./config.ts"
 import { writeJsonNew, writeNew, writeAtomic } from "./files.ts"
 import {
   initializeProject,
-  formatInitializationFiles,
   runPostInitialization,
   assertDownstreamInitializationRoot
 } from "./init.ts"
@@ -14,7 +13,7 @@ import { runCommand } from "./process.ts"
 import type { InitOptions, ProjectConfig } from "./types.ts"
 import { parseServerMode, type WorkspaceMemberType } from "./workspace-selection.ts"
 import { generateGoServer } from "./workspace-server.ts"
-import { GO_TRANSPORT_SOURCE, GO_HEALTH_SOURCE } from "./workspace-http.ts"
+import { finalizeWorkspaceFrontend } from "./workspace-frontend.ts"
 import {
   workspaceDocuments,
   workspacePackage,
@@ -22,7 +21,6 @@ import {
   WORKSPACE_REFERENCE_DOCUMENTS
 } from "./workspace-documents.ts"
 import { validateBaseUrls } from "./environment.ts"
-import { httpUiTest } from "./templates/http-ui-test.ts"
 
 /** 描述工作区唯一身份及精确成员，不把前端宿主改为数组。 */
 export interface WorkspaceConfig {
@@ -31,7 +29,7 @@ export interface WorkspaceConfig {
   id: string
   name: string
   initializedAt: string
-  members: { type: WorkspaceMemberType; directory: string }[]
+  members: { type: WorkspaceMemberType; directory: string; name?: string }[]
   service: {
     mode: "existing" | "create" | "none"
     developmentBaseUrl: string
@@ -152,29 +150,11 @@ export async function initializeWorkspace(
       logo,
       commandRunner
     )
-    if (workspace.service.mode === "create") {
-      const runtimePath = path.join(memberRoot, "src/data/api/client/httpRuntime.ts")
-      const httpRuntime = await readFile(runtimePath, "utf8")
-      await writeAtomic(
-        runtimePath,
-        'import { requestGoTransport } from "./goTransport"\n' +
-          httpRuntime.replace(
-            "client ??= createHttpClient({",
-            "client ??= createHttpClient({\n    fetch: requestGoTransport,"
-          )
-      )
-      await writeNew(
-        path.join(memberRoot, "src/data/api/client/goTransport.ts"),
-        GO_TRANSPORT_SOURCE
-      )
-      await writeNew(path.join(memberRoot, "src/data/api/system.ts"), GO_HEALTH_SOURCE)
-      const httpUiPath = "src/data/api/client/httpUi.test.tsx"
-      await writeAtomic(
-        path.join(memberRoot, httpUiPath),
-        httpUiTest(member.type as "web" | "extension", true)
-      )
-      await formatInitializationFiles(memberRoot, [httpUiPath])
-    }
+    await finalizeWorkspaceFrontend(
+      memberRoot,
+      member.type as "web" | "extension",
+      workspace.service.mode === "create"
+    )
     if (!rootTooling.has("config.ts"))
       rootTooling.set(
         "config.ts",
@@ -182,9 +162,6 @@ export async function initializeWorkspace(
       )
     await rm(path.join(memberRoot, ".harness/initial-creation.json"), { force: true })
     await rm(path.join(memberRoot, "docs/requirements"), { recursive: true, force: true })
-    // pnpm 只在根管理依赖图；成员不保留第二份锁文件或 workspace 配置。
-    await rm(path.join(memberRoot, "pnpm-lock.yaml"), { force: true })
-    await rm(path.join(memberRoot, "pnpm-workspace.yaml"), { force: true })
   }
   const server = workspace.members.find((item) => item.type === "server")
   if (server) await generateGoServer(root, server.directory, server.directory)

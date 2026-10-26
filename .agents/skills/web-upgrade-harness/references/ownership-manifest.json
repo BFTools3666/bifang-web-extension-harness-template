@@ -19,6 +19,10 @@
     }
   ],
   "rules": [
+    { "pattern": ".harness/tooling/workspace-add.ts", "mode": "tombstone" },
+    { "pattern": ".harness/tooling/workspace-frontend.ts", "mode": "tombstone" },
+    { "pattern": "scripts/add-workspace-frontend.ts", "mode": "tombstone" },
+    { "pattern": "tests/workspace-add.test.ts", "mode": "tombstone" },
     {
       "pattern": "tests/application-ui-standards.test.ts",
       "mode": "tombstone"

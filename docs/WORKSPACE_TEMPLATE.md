@@ -46,9 +46,26 @@ pnpm instantiate -- /absolute/parent --type extension --server existing --develo
 
 Agent 与 CLI 共享题库、条件、汇总和确认。每轮只问一个缺项；Go 技术、用户 API、GraphQL、数据库等不另开初始化问卷，由已确认需求和领域 Skill 按实际操作实施。地址、服务来源、成员或契约变化必须使旧确认失效。
 
+### 在同一 Workspace 追加前端
+
+同一 Workspace 可以拥有多个 Web、多个 Extension。首次成员沿用 `<workspace-id>_web|extension`；后续成员必须使用用户明确提供的新名称，英文译名派生为 `<new-id>_web|extension`。不自动沿用旧名、添加序号或生成备用名；名称（忽略大小写、全半角）及英文标识均不能与根或已有前端重复，目录、package name 和成员 id 必须一致。Go 服务仍最多一个，追加复用根已有的服务模式、开发地址、策略、PRD 与依赖锁。
+
+从源 Harness 根执行唯一公开入口的追加模式：
+
+```sh
+pnpm instantiate -- --workspace /absolute/existing-workspace --type web --name "管理后台" --english-name "Admin Console"
+pnpm instantiate -- --workspace /absolute/existing-workspace --type extension --name "Collector" --description "Collect selected content"
+```
+
+`--workspace` 必须指向源外已有 Workspace；`--name` 与 `--type` 必填，Extension 仍需真实简短说明。中文名称的英文译名可由 Agent 翻译，用户无需手填 id。追加不创建第二个 Workspace、Go 服务或 Git，不恢复终端派生入口。旧工作区须先通过 Harness 升级取得多成员 runtime。生成的新成员独立保留首版创建凭据；产品实施仍在根 PRD 下先展示原型并取得新设计确认。多前端原型命令必须传 `--member <directory>`，或从该成员目录运行，scope 也应包含成员标识，避免覆盖另一个成员的评审。
+
+追加先在源外暂存新成员和依赖清单，再精确登记、安装根依赖。根文件或身份在准备期间变化会阻断；失败只回收本次产物，不覆盖用户修改。安装后若新成员已被编辑，保留现场并报告恢复错误。既有升级锁只追加成员拓扑，保留全部既有路径指纹。当前暂存解析不支持自定义 pnpm hook、补丁/catalog、本地路径依赖或 `.npmrc` 本地文件引用，遇到时明确阻断；普通 registry 配置沿用根 `.npmrc`。
+
+成员操作优先用精确目录，例如 `pnpm dev:admin-console_web`、`pnpm build -- --member admin-console_web --e2e=disabled`、`pnpm release:collector_extension`。`web|extension|server` 类型简写只在该类型唯一时有效；有歧义时列出目录并拒绝。无选择的聚合命令仍处理全部成员。开发端口按同类型登记顺序分配：Web 从 5173 递增；Extension 的 serve 从 1012、HMR 从 1815 按步长 2 递增，预留 reporter 端口（[Plasmo 开发服务器](https://docs.plasmo.com/framework/workflows/dev)）。端口占用照常失败，不接管已有进程。
+
 ## 原子事务与命令
 
-一个工作区只有一次 sibling staging 事务、一次根依赖安装；默认不启用 Git、不配置身份或创建基线提交。各前端成员内部生成和校验时跳过安装；Go 依赖由自身 go.mod/go.sum 声明。任一成员、安装或校验失败时不发布整个工作区，继续使用原有租约、inode 保护与精确回收。已存在用户内容不得覆盖。
+首次创建只有一次 sibling staging 事务、一次根依赖安装；默认不启用 Git、不配置身份或创建基线提交。各前端成员内部生成和校验时跳过安装；Go 依赖由自身 go.mod/go.sum 声明。任一成员、安装或校验失败时不发布整个工作区，继续使用原有租约、inode 保护与精确回收。已存在用户内容不得覆盖。
 
 根 package.json 不含产品运行时依赖，只包装成员：
 
@@ -72,6 +89,8 @@ Agent 与 CLI 共享题库、条件、汇总和确认。每轮只问一个缺项
 - `release/web.zip`：只归档本次通过成员 Release 门禁的 Vite dist 静态结果，顶层目录固定为 `<id>_web/`，不增加 dist 层。
 - `release/extension.zip`：先执行成员 package 的双目标完整门禁，再从本次 production 目录归档为 `chrome/`（MV3）和 `firefox/`（MV2），各目录直接包含 manifest.json 与完整扩展；不复用旧浏览器 ZIP。
 - `release/server.zip`：仅包含 `<id>_server`（Windows 为 .exe）与 `config.yaml`。执行真实 Go 测试、在本机导出生产配置，再用 GOOS/GOARCH 和 CGO_ENABLED=0 交叉编译。语言及 Swagger 资源已内嵌；不打包数据库、日志或开发配置。
+
+上述短包名只属于首次以 Workspace id 命名的成员。追加成员始终输出 `release/<member-directory>.zip`，例如 `admin-console_web.zip` 与 `collector_extension.zip`，后续再追加同类也不会改变已有包名或相互覆盖。`--member` 可传精确目录；类型简写有歧义时拒绝。
 
 Server 必须先询问用户目标平台，不默认采用本机；已明确的平台参数复用。支持 linux、windows、darwin 各自 amd64/arm64。非交互缺少平台即在构建前失败。前端同一流程只解析一次 E2E，选择 enabled 后仍需委托精确产物验收，命令不会把选择本身报告为 E2E 通过。Server-only 不询问 E2E。
 

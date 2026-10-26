@@ -24,7 +24,11 @@ import { startGoFixture } from "./go-identity-support.ts"
 const execute = promisify(execFile)
 
 /** 创建可经真实根 CLI 读取的工作区；前端替身只验证编排，不能证明真实前端构建通过。 */
-async function fixture(types: string[] = ["web", "extension"]) {
+async function fixture(
+  types: string[] = ["web", "extension"],
+  extra: { type: string; directory: string }[] = []
+) {
+  const members = [...types.map((type) => ({ type, directory: `example_${type}` })), ...extra]
   const root = await realpath(await temporaryDirectory("workspace release "))
   await cp(path.join(repositoryRoot, ".harness/runtime"), path.join(root, ".harness/runtime"), {
     recursive: true
@@ -35,7 +39,7 @@ async function fixture(types: string[] = ["web", "extension"]) {
       schemaVersion: 1,
       kind: "workspace",
       id: "example",
-      members: types.map((type) => ({ type, directory: `example_${type}` })),
+      members,
       service: {
         mode: types.includes("server") ? "create" : "existing",
         developmentBaseUrl: "http://127.0.0.1:8080"
@@ -49,16 +53,16 @@ async function fixture(types: string[] = ["web", "extension"]) {
   await writeFile(
     path.join(root, "pnpm-workspace.yaml"),
     "packages:" +
-      (types.some((type) => type !== "server")
+      (members.some((member) => member.type !== "server")
         ? "\n" +
-          types
-            .filter((type) => type !== "server")
-            .map((type) => `  - "example_${type}"\n`)
+          members
+            .filter((member) => member.type !== "server")
+            .map((member) => `  - "${member.directory}"\n`)
             .join("")
         : " []\n")
   )
-  for (const type of types) {
-    const member = path.join(root, `example_${type}`)
+  for (const { type, directory } of members) {
+    const member = path.join(root, directory)
     await mkdir(path.join(member, ".harness"), { recursive: true })
     if (type === "server") {
       await writeFile(path.join(member, "go.mod"), "module example_server\n")
@@ -67,9 +71,9 @@ async function fixture(types: string[] = ["web", "extension"]) {
     await mkdir(path.join(member, "src/data/api/client"), { recursive: true })
     await writeFile(
       path.join(member, ".harness/project.json"),
-      JSON.stringify({ id: `example_${type}`, projectType: type })
+      JSON.stringify({ id: directory, projectType: type })
     )
-    await writeFile(path.join(member, "package.json"), JSON.stringify({ name: `example_${type}` }))
+    await writeFile(path.join(member, "package.json"), JSON.stringify({ name: directory }))
     await writeFile(
       path.join(member, ".env.development"),
       `${type === "web" ? "VITE" : "PLASMO_PUBLIC"}_API_BASE_URL=http://127.0.0.1:8080\n`
@@ -83,7 +87,7 @@ async function fixture(types: string[] = ["web", "extension"]) {
     `import {mkdir,writeFile,appendFile} from 'node:fs/promises';
 import path from 'node:path';
 const kind=path.basename(process.cwd()).endsWith('_web')?'web':'extension';
-await appendFile('../commands.jsonl',JSON.stringify({kind,args:process.argv.slice(2)})+'\\n');
+await appendFile('../commands.jsonl',JSON.stringify({kind,directory:path.basename(process.cwd()),args:process.argv.slice(2)})+'\\n');
 if(process.env.FAIL_TARGET===kind)process.exit(2);
 if(process.env.CHANGE_SERVER_CONFIG)await writeFile('../example_server/configs/config-prod.yaml','server:\\n  port: 8133\\n');
 if(kind==='web'){
@@ -364,10 +368,51 @@ func TestLocalAddress(t *testing.T){
       .split("\n")
       .map((line) => JSON.parse(line))
     expect(commands).toEqual([
-      { kind: "web", args: ["run", "build", "--e2e=disabled"] },
-      { kind: "extension", args: ["run", "package", "--e2e=disabled"] }
+      { kind: "web", directory: "example_web", args: ["run", "build", "--e2e=disabled"] },
+      {
+        kind: "extension",
+        directory: "example_extension",
+        args: ["run", "package", "--e2e=disabled"]
+      }
     ])
   }, 60_000)
+
+  /** 多个同类归档按成员隔离，精确选择只运行该对象，类型简写拒绝歧义。 */
+  test("同类成员发布互不覆盖", async () => {
+    const { root, pnpm } = await fixture(
+      ["web", "extension"],
+      [
+        { type: "web", directory: "admin_web" },
+        { type: "extension", directory: "collector_extension" }
+      ]
+    )
+    await release(root, pnpm, ["--e2e=disabled"])
+    expect(await readdir(path.join(root, "release"))).toEqual([
+      "admin_web.zip",
+      "collector_extension.zip",
+      "extension.zip",
+      "web.zip"
+    ])
+    const web = await inspectZip(root, path.join(root, "release/admin_web.zip"))
+    expect(web["admin_web/index.html"]).toBeDefined()
+    const original = await readFile(path.join(root, "release/web.zip"))
+    await writeFile(path.join(root, "commands.jsonl"), "")
+    await release(root, pnpm, ["--member=admin_web", "--e2e=disabled"])
+    const commands = (await readFile(path.join(root, "commands.jsonl"), "utf8"))
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line))
+    expect(commands).toEqual([
+      { kind: "web", directory: "admin_web", args: ["run", "build", "--e2e=disabled"] }
+    ])
+    expect(await readFile(path.join(root, "release/web.zip"))).toEqual(original)
+    await expect(release(root, pnpm, ["--member=web", "--e2e=disabled"])).rejects.toThrow(/多个/)
+    const named = await readFile(path.join(root, "release/admin_web.zip"))
+    await expect(
+      release(root, pnpm, ["--member=admin_web", "--e2e=disabled"], { FAIL_TARGET: "web" })
+    ).rejects.toThrow()
+    expect(await readFile(path.join(root, "release/admin_web.zip"))).toEqual(named)
+  })
 
   /** 构建失败或缺一个目标时，旧 ZIP 不得被替换，暂存目录必须清理。 */
   test("失败时保留原包并清理本次暂存", async () => {

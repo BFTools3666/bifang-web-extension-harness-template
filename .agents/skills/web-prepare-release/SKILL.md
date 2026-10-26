@@ -29,13 +29,13 @@ Workspace 可按当前明确范围选择已登记成员或全部已选成员，�
 
 ### Web
 
-1. 只接受本次由逻辑 Release 与 `.env.production` 生成、且 `build:release` 自动通过 `pnpm release:inspect` 的已验收 Vite `dist/` 目录；Workspace 使用根 pnpm release:web 收集为 release/web.zip，解压后顶层为项目名_web；旧单包仍按目录交付。
+1. 只接受本次由逻辑 Release 与 `.env.production` 生成、且 `build:release` 自动通过 `pnpm release:inspect` 的已验收 Vite `dist/` 目录；Workspace 使用根 pnpm release:<member-directory> 收集，首次标准成员为 release/web.zip，追加成员为 release/<member-directory>.zip；类型简写只在唯一时有效，解压后顶层为项目名_web；旧单包仍按目录交付。
 2. 检查 HTML 入口、静态资源、版本、Logo/favicon、source map 策略和部署所需路由 fallback 说明。
 3. 记录目录内发布文件清单与 SHA-256；目录存在本身不代表当前或完整。
 
 ### Chrome / Firefox Extension
 
-1. 只接受本次 `pnpm package` 以逻辑 Release 与 `.env.production` 生成、并自动通过 `pnpm release:inspect` 的已验收 Chrome MV3 和 Firefox MV2 两个 zip；两者都绑定同一源码、版本及 Release profile；Workspace 通过根 pnpm release:extension 再从同次 production 目录收集为 release/extension.zip，内含 chrome/ 与 firefox/，拒绝开发目录和旧 ZIP 冒充本次归档。
+1. 只接受本次 `pnpm package` 以逻辑 Release 与 `.env.production` 生成、并自动通过 `pnpm release:inspect` 的已验收 Chrome MV3 和 Firefox MV2 两个 zip；两者都绑定同一源码、版本及 Release profile；Workspace 通过根 pnpm release:<member-directory> 再从同次 production 目录收集，首次标准成员为 release/extension.zip，追加成员为 release/<member-directory>.zip；类型简写只在唯一时有效，内含 chrome/ 与 firefox/，拒绝开发目录和旧 ZIP 冒充本次归档。
 2. 检查 zip 可安全列出/解压，根 manifest 分别为 MV3/MV2，且由 Plasmo 按目标动态生成，名称、说明、版本、图标、permissions/host_permissions、入口和资源与批准范围一致。
 3. 逐个记录 zip 的 SHA-256、内容清单和适用的真实 Chrome/Firefox E2E/冒烟结果；重新打包即为新候选，必须重新验收。
 

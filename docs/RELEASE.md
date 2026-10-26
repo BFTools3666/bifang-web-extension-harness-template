@@ -6,7 +6,7 @@
 
 ## Workspace 发布包
 
-Workspace 的本地发布入口是根 `pnpm release` 或 `release:<member>`，只处理已登记成员，固定输出 `release/web.zip`、`release/extension.zip`、`release/server.zip`；完整目录与平台合同见 [Workspace 本地发布归档](WORKSPACE_TEMPLATE.md#本地发布归档)。Web 的受验收对象仍是本次 dist，归档顶层为 `<id>_web/`；Extension 同时检查本次 Chrome MV3 与 Firefox MV2 并收集为 chrome/、firefox/。归档不能代替成员现有的构建、内容检查和精确产物验收。Server 包只含目标平台二进制和合并后的生产 config.yaml，缺少平台先询问。
+Workspace 的本地发布入口是根 `pnpm release` 或 `release:<member>`，只处理已登记成员，首次标准成员输出 `release/web.zip`、`release/extension.zip`、`release/server.zip`；追加前端输出 `release/<member-directory>.zip`，精确目录选择优先，类型简写仅在唯一时有效；完整目录与平台合同见 [Workspace 本地发布归档](WORKSPACE_TEMPLATE.md#本地发布归档)。Web 的受验收对象仍是本次 dist，归档顶层为 `<id>_web/`；Extension 同时检查本次 Chrome MV3 与 Firefox MV2 并收集为 chrome/、firefox/。归档不能代替成员现有的构建、内容检查和精确产物验收。Server 包只含目标平台二进制和合并后的生产 config.yaml，缺少平台先询问。
 
 自建服务首次空 BaseURL 由根发布入口从生产配置推导本机回环地址并提示确认；确认后才写入选中前端的正式配置和启动构建。已有值沿用；远端仍要求 HTTPS。具体确认、非交互参数和同机使用约束见 [运行配置](RUNTIME_CONFIGURATION.md#42-自建服务首次发布的本机地址)。
 

@@ -24,6 +24,10 @@ const RETIRED_AUTH_SOURCE_RULES: Readonly<Record<string, OwnershipMode>> = {
 
 /** 独立锚定升级所有权下限，避免运行时规则与清单同时弱化时绕过源门禁。 */
 export const REQUIRED_UPGRADE_RULES: Readonly<Record<string, OwnershipMode>> = {
+  ".harness/tooling/workspace-add.ts": "tombstone",
+  ".harness/tooling/workspace-frontend.ts": "tombstone",
+  "scripts/add-workspace-frontend.ts": "tombstone",
+  "tests/workspace-add.test.ts": "tombstone",
   ...RETIRED_AUTH_SOURCE_RULES,
   "docs/README.md": "merge-sections",
   ".harness/tooling/upgrade-candidate.ts": "tombstone",

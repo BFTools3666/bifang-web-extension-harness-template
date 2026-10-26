@@ -81,6 +81,36 @@ async function bootstrap(fixture: Awaited<ReturnType<typeof workspaceFixture>>) 
 }
 
 describe("Workspace Harness upgrade", () => {
+  /** 同类的多个精确命名成员均参与工程投影，不改变已有 Go 与产品资源。 */
+  test("支持多个命名前端的升级规划", async () => {
+    const fixture = await workspaceFixture()
+    for (const [directory, type] of [
+      ["admin_web", "web"],
+      ["collector_extension", "extension"]
+    ] as const) {
+      for (const root of [fixture.target, fixture.candidate])
+        await writeProjectFiles(path.join(root, directory))
+      await writeFile(
+        path.join(fixture.target, directory, ".harness/project.json"),
+        JSON.stringify({ schemaVersion: 1, id: directory, projectType: type })
+      )
+      fixture.workspace.members.push({ directory, type })
+    }
+    await writeFile(
+      path.join(fixture.target, ".harness/workspace.json"),
+      JSON.stringify(fixture.workspace)
+    )
+    const plan = await planFor(fixture)
+    for (const directory of [fixture.frontend, "admin_web", "collector_extension"])
+      expect(
+        plan.entries.some((entry) => entry.path === `${directory}/.harness/project.json`)
+      ).toBe(true)
+    expect(plan.workspace?.members).toEqual(fixture.workspace.members)
+    expect(await readFile(path.join(fixture.target, "example_server/config.yaml"), "utf8")).toBe(
+      "private provider config\n"
+    )
+  })
+
   /** 旧创建器的源文档残留必须先明确清理，不能由升级静默恢复或覆盖。 */
   test("旧 Workspace 源文档残留清理前阻断，清理后恢复规划", async () => {
     const fixture = await workspaceFixture()

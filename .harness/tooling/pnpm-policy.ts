@@ -7,6 +7,33 @@ const PNPM_POLICY_PATH = "pnpm-workspace.yaml"
 // 保存 REQUIRED_BUILD_ALLOWLIST 常量，锁定实际需要安装脚本的依赖。
 const REQUIRED_BUILD_ALLOWLIST = ["@parcel/watcher", "esbuild", "sharp"] as const
 
+/** 消费根的精确成员段，允许注释和空行但拒绝重复、通配或未登记成员。 */
+function consumeWorkspacePackages(policy: string, expected: string[]): string {
+  const lines = policy.split(/\r?\n/u)
+  const headers = lines.filter((line) => /^[ \t]*["']?packages["']?[ \t]*:/u.test(line))
+  const header = headers[0]
+  if (
+    headers.length !== 1 ||
+    header === undefined ||
+    !/^packages:[ \t]*(?:\[\])?[ \t]*$/u.test(header)
+  )
+    throw new Error("根 pnpm 成员段必须是唯一精确清单")
+  const start = lines.indexOf(header)
+  let end = start + 1
+  const actual: string[] = []
+  for (; end < lines.length; end++) {
+    const line = lines[end] ?? ""
+    if (/^[ \t]*(?:#.*)?$/u.test(line)) continue
+    if (/^\S/u.test(line)) break
+    const item = /^[ \t]+-[ \t]+("(?:[^"\\]|\\.)*")[ \t]*$/u.exec(line)
+    if (!item?.[1] || header.includes("[]")) throw new Error("根 pnpm 成员段格式无效")
+    actual.push(JSON.parse(item[1]) as string)
+  }
+  if (JSON.stringify(actual) !== JSON.stringify(expected))
+    throw new Error("根 pnpm 成员与 Workspace 不一致")
+  return [...lines.slice(0, start), ...lines.slice(end)].join("\n")
+}
+
 /** 校验配置型 pnpm 文件只管理单包构建策略，不声明多包工作区。 */
 export async function validatePnpmBuildPolicy(root: string, errors: string[]): Promise<void> {
   // 保存 policy 变量供本地策略检查使用。
@@ -30,23 +57,16 @@ export async function validatePnpmBuildPolicy(root: string, errors: string[]): P
         !workspace.members.some(
           (member) =>
             member.directory === path.basename(root) &&
-            member.directory === `${workspace.id}_${member.type}`
+            ["web", "extension"].includes(member.type) &&
+            new RegExp(`^[a-z][a-z0-9]*(?:-[a-z0-9]+)*_${member.type}$`).test(member.directory)
         )
       )
         throw new Error("当前目录不是已登记成员")
       policy = await readFile(path.join(parent, PNPM_POLICY_PATH), "utf8")
-      const stanza = /^packages:\s*\n((?:[ \t]+-[^\n]*\n)*)/mu.exec(policy)?.[1]
-      if (stanza === undefined) throw new Error("缺少根成员配置")
-      const actual = stanza
-        .trim()
-        .split(/\n/u)
-        .map((line) => JSON.parse(line.trim().replace(/^-\s*/u, "")))
       const expected = workspace.members
         .filter((member) => member.type !== "server")
         .map((member) => member.directory)
-      if (JSON.stringify(actual) !== JSON.stringify(expected))
-        throw new Error("根 pnpm 成员与 Workspace 不一致")
-      policy = policy.replace(/^packages:\s*\n(?:[ \t]+-[^\n]*\n)*/mu, "")
+      policy = consumeWorkspacePackages(policy, expected)
     } catch {
       errors.push(`Missing required file or valid Workspace policy: ${PNPM_POLICY_PATH}`)
       return

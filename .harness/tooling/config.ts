@@ -12,6 +12,10 @@ export const RETIRED_PRD_OUTLINE_PATH =
 
 // Source-only project-creation paths that every terminal project must keep absent.
 export const HARNESS_ONLY_PATHS = [
+  ".harness/tooling/workspace-add.ts",
+  ".harness/tooling/workspace-frontend.ts",
+  "scripts/add-workspace-frontend.ts",
+  "tests/workspace-add.test.ts",
   ".harness/tooling/upgrade-candidate.ts",
   "tests/workspace-upgrade.test.ts",
   ".harness/tooling/workspace.ts",
@@ -233,13 +237,16 @@ export function validateProjectConfig(value: unknown): ProjectConfig {
 }
 
 // 执行 loadProjectConfig 函数的处理逻辑。
-export async function loadProjectConfig(root: string): Promise<ProjectConfig> {
+export async function loadProjectConfig(
+  root: string,
+  memberDirectory?: string
+): Promise<ProjectConfig> {
   try {
     const raw = await readJson<unknown>(path.join(root, PROJECT_CONFIG_PATH))
     return validateProjectConfig(raw)
   } catch (error) {
     if (error && typeof error === "object" && "code" in error && error.code === "ENOENT")
-      return loadWorkspaceProjectConfig(root, loadProjectConfig)
+      return loadWorkspaceProjectConfig(root, loadProjectConfig, memberDirectory)
     throw error
   }
 }

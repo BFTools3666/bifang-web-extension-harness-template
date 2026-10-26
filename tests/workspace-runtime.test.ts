@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process"
-import { cp, mkdir, realpath, writeFile } from "node:fs/promises"
+import { cp, mkdir, realpath, writeFile, readFile } from "node:fs/promises"
 import path from "node:path"
 import { describe, expect, test } from "vitest"
 import { repositoryRoot, temporaryDirectory } from "./harness-tooling-support.ts"
@@ -59,6 +59,46 @@ function validate(root: string): void {
 }
 
 describe("Workspace 运行时配置边界", () => {
+  /** 精确成员选择仅启动目标，重复类型不能通过简写误选或批量构建。 */
+  test("多个 Web 的选择与身份校验", async () => {
+    const root = await runtimeFixture('packages:\n  - "example_web"\n  - "admin_web"\n')
+    await cp(path.join(root, "example_web"), path.join(root, "admin_web"), { recursive: true })
+    await writeFile(
+      path.join(root, "admin_web/package.json"),
+      JSON.stringify({ name: "admin_web" })
+    )
+    await writeFile(
+      path.join(root, "admin_web/.harness/project.json"),
+      JSON.stringify({ id: "admin_web", projectType: "web" })
+    )
+    const file = path.join(root, ".harness/workspace.json")
+    const config = JSON.parse(await readFile(file, "utf8"))
+    config.members.push({ type: "web", directory: "admin_web" })
+    await writeFile(file, JSON.stringify(config))
+    expect(() => validate(root)).not.toThrow()
+    const fake = path.join(root, "test-pnpm.mjs")
+    await writeFile(
+      fake,
+      'import {writeFileSync} from "node:fs"; import path from "node:path"; writeFileSync("../selected.txt",path.basename(process.cwd()));'
+    )
+    execFileSync(
+      process.execPath,
+      [".harness/runtime/workspace.mjs", "test", "--member=admin_web"],
+      { cwd: root, env: { ...process.env, npm_execpath: fake } }
+    )
+    expect(await readFile(path.join(root, "selected.txt"), "utf8")).toBe("admin_web")
+    expect(() =>
+      execFileSync(
+        process.execPath,
+        [".harness/runtime/workspace.mjs", "build", "--member", "web"],
+        { cwd: root, stdio: "pipe" }
+      )
+    ).toThrow(/多个/)
+    config.members.push({ type: "web", directory: "admin_web" })
+    await writeFile(file, JSON.stringify(config))
+    expect(() => validate(root)).toThrow(/重复/)
+  })
+
   /** 注释、重复声明和未登记包都不能充当真实成员清单。 */
   test.each([
     'packages:\n  - "unregistered_web"\n# "example_web"\nallowBuilds:\n  sharp: true\n',

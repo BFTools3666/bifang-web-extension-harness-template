@@ -21,6 +21,7 @@ import {
   type PromptedIdentity
 } from "../.harness/tooling/prompts.ts"
 import type { InstantiateOptions, ProjectConfig } from "../.harness/tooling/types.ts"
+import { runAddWorkspaceFrontendCli } from "./add-workspace-frontend.ts"
 
 import {
   canonicalizeProspectiveTarget,
@@ -117,6 +118,17 @@ export async function runInstantiateCli(
   runtime: InstantiateCliRuntime = {}
 ): Promise<ProjectConfig> {
   const parsed = parseArgs(argv)
+  if (parsed.options.has("workspace")) {
+    const project = await runAddWorkspaceFrontendCli(
+      argv,
+      runtime.sourceRoot ?? DEFAULT_SOURCE_ROOT
+    )
+    const output = runtime.output ?? console.log
+    output(
+      `前端工程追加完成：${project.name}（${project.id}）；继续在 Workspace 根完成该成员的需求、原型确认和首版实施。未构建正式产物。`
+    )
+    return project
+  }
   if (parsed.options.has("form")) {
     if (parsed.options.size !== 1 || parsed.positionals.length !== 0) {
       throw new Error("--form 不接受其他参数覆盖已确认输入")

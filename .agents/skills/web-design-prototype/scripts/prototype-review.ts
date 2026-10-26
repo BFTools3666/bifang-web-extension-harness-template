@@ -84,14 +84,31 @@ function evidence(value: unknown): string {
 
 /** 读取与当前工程实例绑定的创建范围及首版原型门禁，不把范围确认当成设计批准。 */
 async function creationReceipt(root: string, review: PrototypeReview) {
-  const location = await localPath(root, ".harness/initial-creation.json", true)
+  let relative = ".harness/initial-creation.json"
+  let legacyWorkspace: { id: string; initializedAt: string } | undefined
+  const workspacePath = await localPath(root, ".harness/workspace.json", true)
+  if (await lstatIfPresent(workspacePath)) {
+    const workspace = JSON.parse(await readFile(workspacePath, "utf8"))
+    if (
+      workspace.members?.some(
+        (member: { directory: string }) => member.directory === review.projectId
+      )
+    ) {
+      const memberReceipt = `${review.projectId}/.harness/initial-creation.json`
+      if (await lstatIfPresent(await localPath(root, memberReceipt, true))) relative = memberReceipt
+      else if (review.projectId === `${workspace.id}_${review.projectType}`)
+        legacyWorkspace = workspace
+      else throw new Error("新成员缺少独立的首版创建凭据")
+    }
+  }
+  const location = await localPath(root, relative, true)
   if ((await lstatIfPresent(location)) === undefined) return undefined
   const receipt = object(JSON.parse(await readFile(location, "utf8")))
   if (
     receipt.schemaVersion !== 1 ||
-    receipt.projectId !== review.projectId ||
+    receipt.projectId !== (legacyWorkspace?.id ?? review.projectId) ||
     receipt.projectType !== review.projectType ||
-    receipt.initializedAt !== review.initializedAt
+    receipt.initializedAt !== (legacyWorkspace?.initializedAt ?? review.initializedAt)
   )
     throw new Error("创建范围凭据与当前工程实例不匹配")
   if (receipt.prototypeApproval !== undefined) {
@@ -364,13 +381,24 @@ export async function runPrototypeReview(
   argv: string[],
   root = process.cwd()
 ): Promise<PrototypeReview> {
+  const memberRoot = root
   root = await resolveWorkspaceContextRoot(root)
+  const selector = argv.indexOf("--member")
+  let selectedMember = root === memberRoot ? undefined : path.basename(memberRoot)
+  if (selector >= 0) {
+    if (!argv[selector + 1] || argv.indexOf("--member", selector + 1) >= 0)
+      throw new Error("--member 需要唯一成员目录")
+    if (selectedMember && selectedMember !== argv[selector + 1])
+      throw new Error("--member 与当前成员目录不一致")
+    selectedMember = argv[selector + 1]
+    argv = [...argv.slice(0, selector), ...argv.slice(selector + 2)]
+  }
   const [command, scope, ...args] = argv
   if (scope === undefined)
     throw new Error("用法：prototype-review.ts prepare|present|approve|waive|check <scope> ...")
   assertScope(scope)
   // 在读取业务文件前验证下游身份；工程生成事务成功后才可准备原型。
-  const config = await loadProjectConfig(root)
+  const config = await loadProjectConfig(root, selectedMember)
   if (command === "prepare") {
     const [requestSource, prdPath, prototypePath] = args
     if (args.length !== 3 || prdPath === undefined || prototypePath === undefined)

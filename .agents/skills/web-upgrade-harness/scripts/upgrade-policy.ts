@@ -57,6 +57,10 @@ export const RETIRED_AUTH_TEMPLATE_PATHS = [
 
 /** 保存所有权清单不可弱化的关键规则。 */
 export const MINIMUM_OWNERSHIP_RULES: Readonly<Record<string, OwnershipMode>> = {
+  ".harness/tooling/workspace-add.ts": "tombstone",
+  ".harness/tooling/workspace-frontend.ts": "tombstone",
+  "scripts/add-workspace-frontend.ts": "tombstone",
+  "tests/workspace-add.test.ts": "tombstone",
   ...Object.fromEntries(
     RETIRED_AUTH_TEMPLATE_PATHS.map((relative) => [relative, "tombstone" as const])
   ),

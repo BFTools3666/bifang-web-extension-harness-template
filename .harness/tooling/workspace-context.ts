@@ -5,7 +5,8 @@ import type { ProjectConfig } from "./types.ts"
 /** 在单前端身份缺席时读取实际 Workspace，供根 PRD/原型工具复用稳定实例。 */
 export async function loadWorkspaceProjectConfig(
   root: string,
-  loadMember: (root: string) => Promise<ProjectConfig>
+  loadMember: (root: string) => Promise<ProjectConfig>,
+  memberDirectory?: string
 ): Promise<ProjectConfig> {
   const workspace = JSON.parse(
     await readFile(path.join(root, ".harness/workspace.json"), "utf8")
@@ -19,14 +20,23 @@ export async function loadWorkspaceProjectConfig(
     !Array.isArray(workspace.members)
   )
     throw new Error("无效 Workspace 身份")
-  const selected = workspace.members.find(
+  const frontends = workspace.members.filter(
     (item: unknown) =>
       item &&
       typeof item === "object" &&
       "type" in item &&
       ["web", "extension"].includes(String(item.type))
-  ) as { type: "web" | "extension"; directory: string } | undefined
-  if (!selected || selected.directory !== `${workspace.id}_${selected.type}`)
+  ) as { type: "web" | "extension"; directory: string }[]
+  if (frontends.length > 1 && memberDirectory === undefined)
+    throw new Error("Workspace 有多个前端，请通过 --member 指定成员目录")
+  const selected =
+    memberDirectory === undefined
+      ? frontends[0]
+      : frontends.find((member) => member.directory === memberDirectory)
+  if (
+    !selected ||
+    !new RegExp(`^[a-z][a-z0-9]*(?:-[a-z0-9]+)*_${selected.type}$`).test(selected.directory)
+  )
     throw new Error("纯服务工作区没有前端原型；请选择真实前端成员")
   const directory = path.join(root, selected.directory)
   if (
@@ -37,7 +47,10 @@ export async function loadWorkspaceProjectConfig(
   const member = await loadMember(directory)
   if (member.id !== selected.directory || member.projectType !== selected.type)
     throw new Error("Workspace 前端身份不一致")
-  return { ...member, id: workspace.id, initializedAt: workspace.initializedAt }
+  // 首个标准成员保留原根评审身份，追加成员始终使用自己的身份。
+  const primary =
+    selected === frontends[0] && selected.directory === `${workspace.id}_${selected.type}`
+  return primary ? { ...member, id: workspace.id, initializedAt: workspace.initializedAt } : member
 }
 
 /** 只有精确登记的成员可以把产品记录解析回自己的 Workspace 根。 */
@@ -92,7 +105,7 @@ export async function isLocalWorkspaceMember(
     !workspace.members.every(
       (member: { type: string; directory: string }) =>
         ["web", "extension"].includes(member.type) &&
-        member.directory === `${workspace.id}_${member.type}`
+        new RegExp(`^[a-z][a-z0-9]*(?:-[a-z0-9]+)*_${member.type}$`).test(member.directory)
     ) ||
     !workspace.members.some(
       (member: { type: string; directory: string }) =>
@@ -104,8 +117,8 @@ export async function isLocalWorkspaceMember(
     throw new Error("纯本地 Workspace 成员或服务身份不一致")
   const seen = new Set<string>()
   for (const member of workspace.members as { type: string; directory: string }[]) {
-    if (seen.has(member.type)) throw new Error("Workspace 成员不能重复")
-    seen.add(member.type)
+    if (seen.has(member.directory)) throw new Error("Workspace 成员不能重复")
+    seen.add(member.directory)
     const directory = path.join(context, member.directory)
     const status = await lstat(directory)
     if (

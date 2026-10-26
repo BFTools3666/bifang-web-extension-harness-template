@@ -160,11 +160,14 @@ export async function loadUpgradeTargetContext(
     if (
       !member ||
       !["web", "extension", "server"].includes(String(member.type)) ||
-      seen.has(String(member.type)) ||
-      member.directory !== `${raw.id}_${member.type}`
+      seen.has(String(member.directory)) ||
+      (member.type === "server"
+        ? member.directory !== `${raw.id}_server`
+        : typeof member.directory !== "string" ||
+          !new RegExp(`^[a-z][a-z0-9]*(?:-[a-z0-9]+)*_${member.type}$`).test(member.directory))
     )
       throw new Error("Invalid or duplicate Workspace member")
-    seen.add(String(member.type))
+    seen.add(String(member.directory))
     const directory = String(member.directory)
     const status = await lstat(path.join(targetRoot, directory))
     if (!status.isDirectory() || status.isSymbolicLink()) throw new Error("Unsafe Workspace member")
@@ -185,7 +188,7 @@ export async function loadUpgradeTargetContext(
       throw new Error("Workspace frontend identity does not match its registered member")
     frontends.push({ directory, type: member.type as "web" | "extension", project })
   }
-  if (seen.has("server") !== (service.mode === "create"))
+  if (seen.has(`${raw.id}_server`) !== (service.mode === "create"))
     throw new Error("Workspace service ownership does not match its members")
   const rootRules = manifest.rules.map((rule) => ({
     ...rule,

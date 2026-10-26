@@ -4,7 +4,7 @@
 
 ## 身份、所有权与范围
 
-- 绑定根 `.harness/workspace.json`、全部前端 `.harness/project.json`、Git 状态、目标本地所有权和根 `.harness/upstream-lock.json`。成员必须使用原有 `<id>_<type>` 目录，宿主、id、服务归属、普通目录与无嵌套 Git 均逐项核对。写前再复验完整身份内容，已脏文件再次变化也失败。
+- 绑定根 `.harness/workspace.json`、全部前端 `.harness/project.json`、Git 状态、目标本地所有权和根 `.harness/upstream-lock.json`。保留精确登记的成员目录；允许不同名称的多个 Web / Extension，仍以 `<member-id>_<type>` 为目录和身份，同一目录不能重复，Server 仍唯一。宿主、id、服务归属、普通目录与无嵌套 Git 均逐项核对。写前再复验完整身份内容，已脏文件再次变化也失败。追加由源 instantiate 的 --workspace 模式独立执行并扩展根锁拓扑；升级本身不增删成员或重写既有路径基线。
 - 目标本地 `ownership-manifest.json` 增加且只允许以下 `workspaceRules`；首次迁移前展示该策略与 helper 精确路径，取得用户批准后补齐，不以源清单替代目标授权：
 
 ```json
