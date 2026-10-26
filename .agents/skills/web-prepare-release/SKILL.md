@@ -7,6 +7,8 @@ description: 为已验收的 Web Harness 或单 package 纯 TypeScript React Web
 
 Workspace 可按当前明确范围选择已登记成员或全部已选成员，逐成员绑定产物；根保存 Git/依赖锁/策略，前端成员保存 projectType 与构建产物。Git 身份核对绑定 Workspace 根，成员目录必须精确登记，不能要求成员有独立 Git。根的 build 包装器进入选中前端既有候选链；服务端本机编译交 go-build-local，根 release:server 按 Workspace 合同询问平台并生成二进制加单份生产配置；生产部署另按真实目的地合同。
 
+发布范围包含自建 Server，或自建服务的前端发布需要推导生产监听地址时，先调用 `$go-configure-release`，传入精确服务成员、当前发布范围和用户变更要求。首次逐段引导并记录，后续发布直接复用已确认配置；只有用户提出变更时重开对应向导。完成后再推导 BaseURL、绑定源码和构建候选；不将配置向导完成当作产物验收。单独的 Server 配置请求直接交该 Skill，不要求先形成前端候选。
+
 只评估当前仓库的唯一候选种类；Harness 源不伪造应用产物，下游只处理 `.harness/project.json.projectType` 对应格式。
 
 自建 Server 的首次空正式 BaseURL 必须先走根 release 的生产配置推导与用户确认，不能直接用开发端口填入，也不能让 Agent 自行代答确认参数。复用已确认地址；旧下游的 exporter 与浏览器 schema 迁移交升级 Skill，规则见 [运行配置](../../../docs/RUNTIME_CONFIGURATION.md#42-自建服务首次发布的本机地址)。确认引起配置字节变化后重新绑定源码与构建候选。

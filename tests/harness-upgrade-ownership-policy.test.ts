@@ -53,7 +53,8 @@ describe("upgrade ownership policy consistency", () => {
     }
     for (const protectedConfiguration of [
       ".harness/project-memory-compatibility.json",
-      ".harness/release-policy.json"
+      ".harness/release-policy.json",
+      ".harness/server-release/**"
     ]) {
       expect(MINIMUM_OWNERSHIP_RULES[protectedConfiguration]).toBe("protected")
       expect(manifest.rules).toContainEqual({
@@ -124,6 +125,22 @@ describe("upgrade ownership policy consistency", () => {
 
     await expect(planFor(fixture)).rejects.toThrow(/AGENTS\.md must set required=true/)
   })
+})
+
+/** 验证升级不会用候选中的记录替换用户已完成的服务端配置向导事实。 */
+test("protects saved server release configuration from candidate replacement", async () => {
+  const fixture = await upgradeFixture()
+  const relative = ".harness/server-release/example_server.json"
+  for (const root of [fixture.target, fixture.candidate])
+    await mkdir(path.dirname(path.join(root, relative)), { recursive: true })
+  const saved = '{"status":"configured","sections":[{"name":"server"}]}\n'
+  await writeFile(path.join(fixture.target, relative), saved)
+  await writeFile(path.join(fixture.candidate, relative), '{"status":"in_progress"}\n')
+
+  expect((await planFor(fixture)).entries).toContainEqual(
+    expect.objectContaining({ path: relative, ownership: "protected", classification: "blocked" })
+  )
+  expect(await readFile(path.join(fixture.target, relative), "utf8")).toBe(saved)
 })
 
 /** 验证旧产品模式 Skill 在两宿主均作为墓碑阻断重新注入。 */

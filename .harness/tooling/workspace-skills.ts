@@ -63,6 +63,15 @@ export const WORKSPACE_SKILL_CONTRACTS = {
     defaultPrompt:
       "使用 $go-implement-external-command 完成当前已确认范围，复用 Workspace 真实成员、契约与相关验证，完成后返回调用方。"
   },
+  "go-configure-release": {
+    description:
+      "在 Workspace 自建 Go 服务发布前解析真实生产配置，按配置段逐步引导修改并记录已确认结果；后续发布直接复用，只有用户提出变更时重开对应向导。不负责部署或外部服务的配置。",
+    title: "# Web Harness：配置 Go 发布参数",
+    displayName: "Web Harness：配置 Go 发布参数",
+    shortDescription: "解析服务端生产配置，逐段引导并记录填写结果，后续发布自动复用已确认配置",
+    defaultPrompt:
+      "使用 $go-configure-release 解析当前 Workspace 自建 Go 服务的真实生产配置，首次按段引导并记录，后续发布直接复用，仅在用户提出变更时重开对应向导。"
+  },
   "go-build-local": {
     description:
       "按当前请求在 Workspace _server 编译本机 Go 开发制品，报告真实二进制和启动方式，不自动形成正式发布、标签或部署。",

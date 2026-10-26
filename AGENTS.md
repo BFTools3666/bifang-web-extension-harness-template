@@ -75,8 +75,9 @@
 - 计划与记忆：`$web-plan-change`、`$web-summarize-development-history`、`$web-curate-harness-memory`。计划只由独立事件触发；源记忆整理不分发。
 - Harness 升级：`$web-preview-harness-upgrade`、`$web-upgrade-harness`。已初始化下游，先只读预演再按已批准范围应用。
 - 候选与验收：`$web-prepare-release`、`$web-verify-delivery`、`$web-test-final-artifact-e2e`。显式候选、完整验收或真实硬要求。
+- 服务端配置：`$go-configure-release`。逐段记录、发布复用；用户变更再引导。
 
-源保留 32 个 `web-*` 与 17 个 Workspace/Go Skills；领域实施入口为 `$workspace-implement-feature`，委托 users、organizations、permissions、catalog、orders、wallet、audit。两类终端均删除实例化与源记忆整理能力。Web 删除 Extension 兼容审查，Extension 删除 Web 列表 Skill，各前端成员保留 29 个原维护 Skills 及 17 个 Workspace/Go 协作 Skills（不含设计支持）。能力资源按需装配；前端项目内补装缺失的 `design-taste-frontend`，有效版本保留，优先级见 UI 规范 §1.1。发现元数据须与文件一致。
+源含 32 个 `web-*` 与 18 个 Workspace/Go Skills；入口 `$workspace-implement-feature` 委托 users、organizations、permissions、catalog、orders、wallet、audit。两类终端删除实例化与源记忆整理，Web 另删 Extension 兼容审查，Extension 另删 Web 列表 Skill；成员保留 29 个前端与 18 个协作 Skills，设计另计。资源按需装配；补装缺失的 `design-taste-frontend`，保留有效版本，优先级见 UI 规范 §1.1；发现元数据与文件一致。
 
 ## 约束地图
 

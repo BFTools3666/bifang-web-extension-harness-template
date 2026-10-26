@@ -48,6 +48,14 @@ export const EXPECTED_EXTENSION_ONLY_TERMINAL_SKILLS = [
 
 /** 按能力拥有者保存源与终端共用的正文门禁，不让发现信息替代行为约束。 */
 export const SHARED_SKILL_BODY_REQUIREMENTS: Partial<Record<string, readonly string[]>> = {
+  "go-configure-release": [
+    "references/configuration-record.md",
+    "从合并结果按实际顶层配置段生成顺序清单",
+    "每轮只处理一个配置段",
+    "直接复用，不询问是否修改、不再索取值或密钥",
+    "不读取本机环境值",
+    "完成后返回调用方"
+  ],
   "web-prepare-brand-identity": [
     "产品名称 + 首次需求分析结果",
     "首次未提供需求时，直接按产品名称生成",

@@ -271,6 +271,6 @@ export async function generateGoServer(
   )
   await writeNew(
     path.join(workspaceRoot, directory, "AGENTS.md"),
-    "# Go 成员\n\n先读 ../AGENTS.md 与 ../docs/GO_SERVICE.md；Git、策略、PRD 和接口文档归 Workspace 根。仅在此实现 Go 服务，业务规则进入 service，handler 仅解码与映射。按请求读取 $go-implement-service 或领域 Skill；不运行独立初始化、创建嵌套 Git、替换根策略或另设发布生命周期。\n"
+    "# Go 成员\n\n先读 ../AGENTS.md 与 ../docs/GO_SERVICE.md；Git、策略、PRD 和接口文档归 Workspace 根。仅在此实现 Go 服务，业务规则进入 service，handler 仅解码与映射。按请求读取 $go-implement-service 或领域 Skill；服务端发布配置交 $go-configure-release，在地址推导和打包前首次逐段引导并记录，后续发布复用，用户要求变更时重开对应向导。不运行独立初始化、创建嵌套 Git、替换根策略或另设发布生命周期。\n"
   )
 }

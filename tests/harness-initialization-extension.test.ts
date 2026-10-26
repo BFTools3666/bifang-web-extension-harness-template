@@ -260,7 +260,7 @@ describe("terminal dual-browser Extension initialization", () => {
       .filter((entry) => entry.isDirectory())
       .map((entry) => entry.name)
       .sort()
-    expect(extensionSkills).toHaveLength(47)
+    expect(extensionSkills).toHaveLength(48)
     expect(extensionSkills).toContain("design-taste-frontend")
     expect(extensionSkills).toContain("web-review-api-contract")
     expect(extensionSkills).toContain("web-review-module-boundaries")

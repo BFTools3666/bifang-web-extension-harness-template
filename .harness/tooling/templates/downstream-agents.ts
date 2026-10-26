@@ -78,6 +78,7 @@ ${hostSources}- \`src/pagination/\`：受管 page/pageSize 会话状态与空页
 - \`$web-review-api-contract\`：只读核对当前接口来源、实现关联与差异，不联网或写文档。
 - \`$web-review-module-boundaries\`：只读定位职责、依赖与状态拥有者，返回有证据的拆分建议。
 - \`$workspace-review-performance\`：只读定位死锁、无界等待、资源泄漏与性能热点，返回有证据的修复建议。
+- \`$go-configure-release\`：自建 Server 发布前回到 Workspace 根解析生产配置，首次按段引导并记录，后续发布复用，仅用户要求变更时重开对应向导；existing/none 不调用。
 - \`$web-implement-auth-session\`：统一登录、恢复、退出及失效转换，隔离迟到结果并清理私有缓存。
 - \`$web-implement-access-control\`：按既有身份和权限统一菜单、路由与动作访问控制。
 - \`$web-implement-write-recovery\`：处理当前写操作的防重复、未知查询、冲突及成功后刷新。

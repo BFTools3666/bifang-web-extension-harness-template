@@ -1,0 +1,4 @@
+interface:
+  display_name: "Web Harness：配置 Go 发布参数"
+  short_description: "解析服务端生产配置，逐段引导并记录填写结果，后续发布自动复用已确认配置"
+  default_prompt: "使用 $go-configure-release 解析当前 Workspace 自建 Go 服务的真实生产配置，首次按段引导并记录，后续发布直接复用，仅在用户提出变更时重开对应向导。"

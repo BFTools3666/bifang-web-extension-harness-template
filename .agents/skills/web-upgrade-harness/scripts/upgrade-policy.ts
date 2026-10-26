@@ -76,6 +76,8 @@ export const MINIMUM_OWNERSHIP_RULES: Readonly<Record<string, OwnershipMode>> = 
   "docs/README.md": "merge-sections",
   ".harness/tooling/upgrade-candidate.ts": "tombstone",
   "tests/workspace-upgrade.test.ts": "tombstone",
+  ".agents/skills/go-configure-release/**": "managed",
+  ".harness/server-release/**": "protected",
   ".agents/skills/go-test-service/**": "managed",
   ".agents/skills/workspace-review-performance/**": "managed",
   ".harness/tooling/workspace-context.ts": "managed",

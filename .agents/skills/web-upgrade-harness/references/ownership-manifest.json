@@ -60,6 +60,14 @@
       "mode": "tombstone"
     },
     {
+      "pattern": ".agents/skills/go-configure-release/**",
+      "mode": "managed"
+    },
+    {
+      "pattern": ".harness/server-release/**",
+      "mode": "protected"
+    },
+    {
       "pattern": ".agents/skills/go-test-service/**",
       "mode": "managed"
     },
