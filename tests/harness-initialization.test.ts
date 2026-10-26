@@ -83,7 +83,9 @@ async function expectRealRemoteAndLocalBoundaryDocs(root: string): Promise<void>
   expect(engineeringRules).toContain("沉默、超时或预选项不算批准")
   expect(connectionSkill).toContain("真实请求失败不得回落 Mock")
   expect(connectionSkill).toContain("本地实现继续真实运行，不纳入 Mock 迁移")
-  expect(implementationSkill).toContain("产品运行路径只用真实 typed API")
+  expect(implementationSkill).toContain("产品远端操作只用真实 typed API")
+  expect(implementationSkill).toContain("`service.mode=create`")
+  expect(implementationSkill).toContain("`service.mode=none`")
   for (const source of [
     dataAccess,
     runtimeRules,
