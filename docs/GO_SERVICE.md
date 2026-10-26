@@ -44,13 +44,13 @@ CORS 按真实前端 Origin 和 headers 配置，拒绝无依据通配凭据；E
 
 ## 验证与协作
 
-领域变化运行相关非空 Go 测试；handler、装配、协议或持久化变化还需实际 HTTP 和临时数据库覆盖成功、鉴权/授权失败与恢复。验证注册/登录等流程时重启后再读取或登录，证明持久化；业务联调同时验证前端实际请求及错误反馈。测试替身不能代替真实服务连通证据。
+实施入口将服务成员、操作、变更类型、契约、场景和已有证据委托 `$go-test-service`，同一源码状态已覆盖的检查不重复执行。普通领域变化运行相关非空 Go 测试；行为保持重构在服务成员 cwd 运行全量 `go test ./...`。handler、装配、协议或持久化变化还需实际 HTTP 和临时数据库覆盖成功、适用的鉴权/授权失败与恢复；公开接口按契约验证匿名成功。验证注册/登录等流程时重启后再读取或登录，证明持久化；存在受影响前端时验证实际请求及错误反馈，纯 Server 不要求前端。测试替身不能代替真实服务连通证据。
 
 根 pnpm release:server 必须询问或复用明确目标平台，输出 release/server.zip；内容与命令见 [Workspace 归档合同](WORKSPACE_TEMPLATE.md#本地发布归档)。包内 config.yaml 仅合并源码 configs/config.yaml 与 configs/config-prod.yaml，不包含开发覆盖，不读取本机 APP_* 秘密。生产 jwt.secret 默认空，解压后填写或显式注入；数据库与日志路径相对运行 cwd。此命令只编译和归档，不创建部署或独立 Git/tag 流程；未测试平台标为 Unverified。根前端构建仍遵循各成员现有候选门禁。
 
 Agent 在发布地址推导和打包前调用 [$go-configure-release](../.agents/skills/go-configure-release/SKILL.md)，按实际生产配置段逐步引导，将非秘密修改保存到 `configs/config-prod.yaml`，并在根 `.harness/server-release/<member-directory>.json` 记录完成事实。后续发布直接复用；只有用户提出变更时才重开对应向导。记录不复制值或秘密，不代替生产启动校验；详细恢复、漂移与部署注入合同归该 Skill。
 
-GraphQL 原始 generated.go 引导快照单独保存于资产 generated/（真实 gqlgen 输出）；装配时恢复目标原路径并替换身份，再按当前 SDL 生成，不能把该快照当成人工业务代码。具体顺序归 go-implement-graphql。上游 README 保留来源原文，其独立问卷、Mock、初始化命令和“生成物在原路径”陈述均由当前 Skills 合同取代。
+GraphQL 原始 generated.go 引导快照单独保存于资产 generated/（真实 gqlgen 输出）；确需账号引导时恢复目标原路径并替换身份，再按当前 SDL 生成，不能把该快照当成人工业务代码。公开查询只装配实际领域依赖，不为复用快照增加账号或 Token；具体分支与生成顺序归 go-implement-graphql。上游 README 保留来源原文，其独立问卷、Mock、初始化命令和“生成物在原路径”陈述均由当前 Skills 合同取代。
 
 生成器修正上游日志：正文日志关闭时不捕获请求/响应正文；显式调试时仅保留有界副本，超过 1 MiB 的正文不记入日志，实际数据、读取错误与关闭语义完整透传。自定义敏感键与固定敏感键合并，TokenPair、Cookie 和认证/continuation 请求头不允许原文进入日志。默认开发关闭请求/响应正文与请求头日志。
 

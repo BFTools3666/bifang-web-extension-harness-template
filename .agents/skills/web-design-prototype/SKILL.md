@@ -43,10 +43,10 @@ description: 在已初始化 React Web 或 Plasmo Extension 下游处理新页�
 
 ## 开发交接与修订
 
-1. 交接 PRD、scope、唯一原型链接及版本、review.json、成功标准、状态/数据契约、自查证据和未验证项。不自动创建左侧 Task、Work Plan、发布候选或外部副作用。
+1. 交接根目录、精确前端成员、PRD、实际 scope/request、唯一原型链接及版本、review.json、成功标准、状态/数据契约、自查和 check 证据与未验证项。后续入口复用同一成员及 scope/request；从根核验多前端时运行 `pnpm prototype:check <scope> <设计请求来源> --member <精确成员目录>`，不能改用另一成员或固定 scope。不自动创建左侧 Task、Work Plan、发布候选或外部副作用。
 2. 当前设计取得明确反馈且 `check` 通过后，才交给 `$web-implement-change`。原请求仅限原型时只交付设计；用户要求暂缓时保持暂缓。无需 A/B 选型不等于省略预览反馈。
 3. 仅已完成首版原型确认的后续变更，在用户明确要求跳过本次预览并直接实施时，才可执行 `waive <scope> <reviewHash> <明确跳过> <用户消息来源及原话>`。明确跳过接受“跳过本次预览并直接实施”“跳过预览直接实施”“不用预览直接改”或 `skip preview and implement`；等义自然回答可提取成规范值，source 保留真实原话及消息引用，不能把普通“改一下”或需求确认解释为跳过。仍生成并自查本轮原型，留下当前版本和豁免依据，不把豁免扩大到后续改版。
-4. 首版原型必须展示并取得用户明确确认，再进入前后端业务开发和测试。新工程的 `.harness/initial-creation.json` 记录待确认门禁与可选产品范围来源；范围确认、旧 consumed/closed 字段、旧 initial-create 自动批准命令均不能代替设计反馈。首版使用 `initial-create` scope 的 `v1`，PRD 沿用已确认范围并保留其来源；执行 prepare → present 后停下等待新用户回复，再执行 approve → check。首次确认前不能 waive，即使改换 scope 也不能绕过；真实确认后由工具记录 prototypeApproval，后续变更仍按当前请求核验。
+4. 首版原型必须展示并取得用户明确确认，再进入前后端业务开发和测试。新工程的 `.harness/initial-creation.json` 记录待确认门禁与可选产品范围来源；范围确认、旧 consumed/closed 字段、旧 initial-create 自动批准命令均不能代替设计反馈。初始单前端首版默认使用 `initial-create` scope 的 `v1`；新增成员或多前端使用成员前缀的独立 scope（如 `collector-extension-initial-create`）和 `v1`，所有命令沿用同一成员与实际 scope，PRD 沿用已确认范围并保留其来源；执行 prepare → present 后停下等待新用户回复，再执行 approve → check。首次确认前不能 waive，即使改换 scope 也不能绕过；真实确认后由工具记录 prototypeApproval，后续变更仍按当前请求核验。
 5. PRD、原型或本轮设计要求变化时，旧摘要失效：修订当前唯一设计、自查、重新登记、展示并取得新反馈。即使旧文件哈希仍匹配，新设计请求也不能复用旧批准；无设计变化且批准覆盖当前范围时才复用。旧 schemaVersion 1/2 记录及旧 initial-create 批准均不自动转成有效设计反馈，不删除历史产物。
 
 ## 完成输出

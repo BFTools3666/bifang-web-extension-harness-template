@@ -80,7 +80,7 @@ description: 通过源 Web Harness 创建独立 React Web 或 Plasmo Chrome MV3 
 ## 在下游完成首版
 
 1. 工程事务成功后复核目标 Workspace、精确成员身份、规范根目录与所选宿主，读取目标 `AGENTS.md`，在同一任务内转到目标根继续，不在源实施产品。
-2. Workspace 按所选 Web 或 Extension 宿主设计。`$web-define-product` 复用完整创建确认登记 Approved PRD，注明实际确认来源；`$web-compose-capabilities` 提供固定设计和操作依赖，`$web-design-prototype` 组合一个真实交互原型、自查并展示；PRD 可记录 `创建确认：<revision>` 追溯产品范围，但必须等待展示后的新用户确认，再运行 `pnpm prototype:check initial-create <设计请求来源>`。通过后才交接前后端开发及测试；无回复、旧创建确认和原型豁免均不能放行首版。
+2. Workspace 按所选 Web 或 Extension 宿主设计。`$web-define-product` 复用完整创建确认登记 Approved PRD，注明实际确认来源；`$web-compose-capabilities` 提供固定设计和操作依赖，`$web-design-prototype` 组合一个真实交互原型、自查并展示；PRD 可记录 `创建确认：<revision>` 追溯产品范围，但必须等待展示后的新用户确认，再运行 `pnpm prototype:check <scope> <设计请求来源> --member <精确成员目录>`，传入设计阶段交接的实际成员和 scope；仅初始单前端默认 initial-create 并可省略成员参数。通过后才交接前后端开发及测试；无回复、旧创建确认和原型豁免均不能放行首版。
 3. 原型确认与准入核验通过后，`$web-implement-change` 使用 [固定应用装配合同](../web-compose-capabilities/templates/application/wiring.md)，接入所选页面、路由、导航、用户区、HTTP、Query 与状态 owner，并按需求实现真实 HomePage。固定模板不是产品正文。基础身份必须包含登录、用户信息、匿名守卫、安全返回、Token、退出及当前 401 清理；权限同时用于路由、页面、导航、元素和提交前复核。
 4. 运行首版变化需要的类型检查、相关非空行为测试和实际开发浏览器核心流程走查；Extension 走查 Chrome 与 Firefox 的受影响流程。开发走查不调用最终产物 E2E Skill，不产生 Release 候选。产品数据只用真实 adapter；自建服务由对应领域 Skill 完成 Go、前端和联调，已有服务消费可信契约；测试替身不能替代真实联通。
 5. 产品阶段失败保留已发布下游及修改，修复后复验；不能删除工程回滚现场，也不能以工程事务成功结束完整创建。只有要求最终 dist/zip 或发布时才进入相应门禁；凭据、真实扣款、生产或外部写入按原授权与专用门禁执行。

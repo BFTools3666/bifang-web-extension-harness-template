@@ -186,7 +186,7 @@ React 项目使用已声明的 `@tanstack/react-query`。REST 读取与 GraphQL 
 
 #### 真实服务与本地能力分工
 
-- 新工作区已有服务必须提供开发 BaseURL，并按具体操作核对可信 endpoint/SDL；BaseURL 不授权猜测接口。没有服务则创建 _server，领域 Skill 完成 Go 实现、前端 typed adapter 与真实联调。
+- 已有服务必须提供开发 BaseURL，并按具体操作核对可信 endpoint/SDL；BaseURL 不授权猜测接口。`service.mode=create` 时领域 Skill 在已登记 _server 完成 Go 实现、前端 typed adapter 与真实联调；`none` 只实现真实本地能力。新增远端需求先确认服务归属，不能从缺地址推断创建服务；模式边界见 [按服务模式执行领域操作](WORKSPACE_TEMPLATE.md#按服务模式执行领域操作)。
 - 产品运行路径不装配业务 Mock、演示账号或 fixtures。配置缺失、未实现或不可达显示真实失败，不回落内存业务数据。
 - 本地能力直接真实实现，不要求 BaseURL；计算和存储不要求虚构 endpoint；网络状态、契约解析与业务失败分别处理。
 - 测试中的 fixtures、mock transport 和临时数据库只证明隔离边界；真实服务联通、持久化和候选验收另由对应证据证明。

@@ -224,6 +224,53 @@ describe("Workspace 命名前端追加", () => {
         original.root
       )
     ).rejects.toThrow()
+    await expect(
+      runPrototypeReview(["check", "collector", "用户消息：新成员设计"], original.root)
+    ).rejects.toThrow(/多个前端/)
+    await expect(
+      runPrototypeReview(
+        ["check", "initial-create", "用户消息：新成员设计", "--member", "collector_extension"],
+        original.root
+      )
+    ).rejects.toThrow()
+    await runPrototypeReview(
+      [
+        "present",
+        "collector",
+        review.reviewHash,
+        "助手消息：展示新成员原型",
+        "--member",
+        "collector_extension"
+      ],
+      original.root
+    )
+    await runPrototypeReview(
+      [
+        "approve",
+        "collector",
+        review.reviewHash,
+        "确认",
+        "用户消息：确认当前新成员设计",
+        "--member",
+        "collector_extension"
+      ],
+      original.root
+    )
+    const approved = await runPrototypeReview(
+      ["check", "collector", "用户消息：新成员设计", "--member", "collector_extension"],
+      original.root
+    )
+    expect(approved).toMatchObject({
+      projectId: "collector_extension",
+      scope: "collector",
+      state: "approved"
+    })
+    expect(
+      await runPrototypeReview(
+        ["check", "collector", "用户消息：新成员设计"],
+        path.join(original.root, "collector_extension")
+      )
+    ).toEqual(approved)
   })
 
   /** 拒绝所有可预见命名错误，且没有安装或根控制文件写入。 */

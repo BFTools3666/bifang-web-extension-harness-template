@@ -246,12 +246,12 @@ export const SKILL_CONTRACTS = {
   },
   "web-plan-change": {
     description:
-      "为 Web Harness 或纯 TypeScript React Web、Plasmo Chrome MV3 / Firefox MV2 Extension 前端下游创建可直接实施的精简 Todo。只在用户明确要求持久计划、跨会话交接，或发布与高风险工作确需协调时使用；普通日常任务直接实施。",
-    title: "# Web Harness：规划前端变更",
-    displayName: "Web Harness：规划前端变更",
-    shortDescription: "规划 Web Harness 或其 React Web、Plasmo MV3 前端下游变更",
+      "为 Web Harness、Workspace 或旧独立前端创建可直接实施的精简 Todo，按真实成员规划 React Web、Plasmo Extension 与 Go 协作。只在用户明确要求持久计划、跨会话交接，或发布与高风险工作确需协调时使用；普通日常任务直接实施。",
+    title: "# Web Harness：规划项目变更",
+    displayName: "Web Harness：规划项目变更",
+    shortDescription: "按真实成员规划 Harness、Workspace 或旧独立前端的变更与交接",
     defaultPrompt:
-      "使用 $web-plan-change 为 Web Harness 或其纯 TypeScript React Web、Plasmo Chrome MV3 / Firefox MV2 Extension 前端下游制定可执行的变更计划。"
+      "使用 $web-plan-change 为 Harness、Workspace 或旧独立前端制定计划，按真实成员明确前端、Go 与契约依赖，不擅自增加成员或服务。"
   },
   "web-prepare-brand-identity": {
     description:

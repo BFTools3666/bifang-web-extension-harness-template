@@ -48,6 +48,38 @@ export const EXPECTED_EXTENSION_ONLY_TERMINAL_SKILLS = [
 
 /** 按能力拥有者保存源与终端共用的正文门禁，不让发现信息替代行为约束。 */
 export const SHARED_SKILL_BODY_REQUIREMENTS: Partial<Record<string, readonly string[]>> = {
+  ...Object.fromEntries(
+    Object.keys(WORKSPACE_SKILL_CONTRACTS)
+      .filter(
+        (name) => name.startsWith("workspace-implement-") && name !== "workspace-implement-feature"
+      )
+      .map((name) => [
+        name,
+        [
+          "](../../../docs/WORKSPACE_TEMPLATE.md#按服务模式执行领域操作)",
+          "`service.mode=none`",
+          "不进入下列 wire、服务端或 HTTP 完成合同",
+          "$go-test-service"
+        ]
+      ])
+  ),
+  "go-implement-service": [
+    "$go-test-service",
+    "全量 `go test ./...`",
+    "实际 member/scope/request",
+    "pnpm prototype:check <scope> <设计请求来源> --member <精确成员目录>"
+  ],
+  "go-implement-graphql": [
+    "公开查询允许匿名成功",
+    "受限查询才消费既有认证",
+    "](../go-implement-service/scripts/team-baseline.ts)",
+    "$go-test-service"
+  ],
+  "go-test-service": [
+    "行为保持重构在服务成员 cwd 运行全量 `go test ./...`",
+    "纯 Server 不要求前端",
+    "先核对已有证据是否覆盖同一源码、操作和成员"
+  ],
   "go-configure-release": [
     "references/configuration-record.md",
     "从合并结果按实际顶层配置段生成顺序清单",
@@ -117,6 +149,8 @@ export const SHARED_SKILL_BODY_REQUIREMENTS: Partial<Record<string, readonly str
     "已识别但无权限的目标",
     "不依赖被拒绝的业务权限",
     "业务 403",
+    "组织切换由组织拥有者负责",
+    "权限获取与刷新由权限拥有者负责",
     "返回调用方"
   ],
   "web-document-api": [
@@ -151,6 +185,7 @@ export const SHARED_SKILL_BODY_REQUIREMENTS: Partial<Record<string, readonly str
     "git rev-parse --path-format=absolute --git-common-dir",
     "git worktree list --porcelain",
     "git status --porcelain=v1 --untracked-files=all",
+    "用户置顶不改变 Task 身份",
     "不置顶"
   ],
   "web-audit-worktrees": [
@@ -176,12 +211,19 @@ export const SHARED_SKILL_BODY_REQUIREMENTS: Partial<Record<string, readonly str
     "展示后等待用户反馈，不得先改产品代码",
     "pnpm prototype:check <scope> <设计请求来源>",
     "普通开发授权、需求批准或旧原型登记不能代替本轮设计反馈",
-    "产品运行路径只用真实 typed API",
+    "产品远端操作只用真实 typed API",
     "本地能力直接真实实现，不要求 BaseURL",
     "只有实际创建新下游时调用一次 `$web-check-development-environment`",
     "最终 Release 构建、新会话或 Agent 切换都直接执行，不做环境预探测",
     "只返回 `clientThreadId` 或无法取得真实 `threadId` 时保持零写入",
-    "$web-manage-user-tasks"
+    "$web-manage-user-tasks",
+    "独立只读调查可使用 Subagent"
+  ],
+  "web-plan-change": [
+    ".harness/workspace.json",
+    "每个前端成员仍保持唯一 `projectType`",
+    "$workspace-implement-feature",
+    "`service.mode=none`"
   ],
   "web-connect-http-service": [
     "](../../../docs/DATA_ACCESS.md#列表查询协议强约定)",
@@ -211,11 +253,16 @@ export const SHARED_SKILL_BODY_REQUIREMENTS: Partial<Record<string, readonly str
     "不生成 A/B/C 备选方案",
     "不规划、生成或验证 Mobile 支持",
     "pnpm prototype:check",
+    "实际 scope/request",
+    "--member <精确成员目录>",
     "旧摘要失效"
   ],
   "workspace-implement-feature": [
     "前后端业务开发和测试必须等待原型确认",
-    "创建范围确认不能代替设计反馈"
+    "创建范围确认不能代替设计反馈",
+    "实际 member/scope/request",
+    "pnpm prototype:check <scope> <设计请求来源> --member <精确成员目录>",
+    "](../../../docs/WORKSPACE_TEMPLATE.md#按服务模式执行领域操作)"
   ],
   "web-implement-list-view": [
     "](../../../docs/DATA_ACCESS.md#列表查询协议强约定)",

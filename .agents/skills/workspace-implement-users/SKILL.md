@@ -9,6 +9,8 @@ description: 在 Workspace 按具体操作完成用户生命周期、注册、�
 
 先读根 .harness/workspace.json、唯一 PRD 与 [领域知识](../web-compose-capabilities/knowledge/identity.md)，只取当前操作需要的固定设计和模板。由 workspace-implement-feature 或 web-implement-change 委托，收到范围、成员、服务归属、写入所有权和验收合同后执行，完成后返回调用方，不重启创建或重复问卷。
 
+先按[服务模式分支](../../../docs/WORKSPACE_TEMPLATE.md#按服务模式执行领域操作)确定本次路径；独立调用时从根清单和当前请求补齐成员、操作与服务归属，不重走编排。`service.mode=none` 完成本地实现与验证后返回，不进入下列 wire、服务端或 HTTP 完成合同；需要真实远端能力时返回范围缺口，不静默创建服务。
+
 已有服务：核对 BaseURL、endpoint/SDL、字段、认证、授权、错误及恢复语义，仅实现消费侧，不擅自扩张服务端写入。自建服务：调用 go-implement-service 与 go-implement-persistence，在 _server 实现该领域，再按 web-implement-change 接齐真实 typed adapter、Query、页面和错误恢复；不要求用户单独填写 Go 表单。
 
 复用 Go 账号条件资产和前端身份状态机；注册在数据库同一事务创建 Account、自有 Organization 与 owner OrganizationUser，不能只有旧 Org.owner_id。账号加入其他组织不丢自有组织。已选注册默认邮箱加密码，用户名由服务生成并保留旧客户端可选字段，登录兼容旧用户名。自建邮箱注册默认补齐 verification 和 identity.verification；无邮件服务时默认开发模拟投递，发送后在注册表单直接显示验证码，接入真实 SMTP 并关闭 mock 后自动移除回显。发码与找回委托 go-implement-verification，已有服务遵循可信合同。TokenPair/Unix 秒/字符串 ID、全账号 logout 与 refresh 失效语义必须按真实实现告知前端；非开发环境拒绝公开默认 JWT secret。
@@ -17,7 +19,7 @@ description: 在 Workspace 按具体操作完成用户生命周期、注册、�
 
 先锁定数据和 wire 合同：实体/ID/单位/租户 → GraphQL 列表查询与其他带业务查询条件的 GET 类读取 → 其余请求全部 RESTful（含路径 ID 详情和全部写入） → 认证/权限/错误 → 幂等及恢复。协议分工遵循 [工程规则](../../../docs/ENGINEERING_RULES.md) 与 [数据访问规范](../../../docs/DATA_ACCESS.md#12-rest-与-graphql-分工)。只为本次操作补最小依赖，不从模块名自动启用全部功能；与其他领域共享的事实通过明确接口消费，避免双向依赖。前端状态归既有 Query/会话 owner，不复制到新的全局状态。
 
-产品运行只用真实服务，禁止业务 Mock、默认演示账号或 fixtures。测试使用隔离数据库和测试替身可行；完成需真实 HTTP 证明核心成功、最高风险失败和数据持久化，核对前端实际请求及恢复。同步根 docs/api 的受影响契约和业务关联，返回实际路径、运行结果及未决外部条件。
+远端产品运行只用真实服务，禁止业务 Mock、默认演示账号或 fixtures。服务模式分支要求的核心成功、最高风险失败和恢复均需真实证据；自建 Go 服务验证委托 `$go-test-service`，传入操作、成员、契约、场景与已有证据，源码未变时不重复执行。已有服务验证可信外部结果，不索取未授权数据库访问；存在受影响前端时核对实际请求。仅远端契约或已实现业务流程变化时同步根 docs/api 的受影响契约与关联，返回实际路径、运行结果及未决外部条件。
 
 自建服务首次用户场景：先按 go-implement-service 的账号装配器完成 register/login/profile/logout/password.change 及 owner 成员事务，再把 [Go 身份 adapter](assets/go-identity-adapter.ts.txt) 放入对应前端 src/data/api/identity/adapter.ts；复用已有 session/Query/client，不能再写 fetch。已选 register 可由 applicationFiles 装配邮箱注册页、条件发码、路由及 i18n；完整账号核心包含资料与改密弹窗，邮箱只读、昵称可改；兼容 /account/settings 与 /account/password 地址复用同一弹窗，已有服务按可信合同接线。验证取消、字段错误、注册后显式登录、已注册只重试登录及未知创建不重放。基础应用装配器仅支持既有基础操作；扩展操作由本 Skill 增量完成，不能仅把它写入 wiring.resolved 当作已实现。两前端同时选中时分别接入，后端只实现一次。若只加 refresh/改密则不重复安装账号模板；按现有 owner 增量挂载已选路由。资料必须含有效 Account、Organization、OrganizationUser；重启服务后重读一致，并证明退出使旧 access/refresh 失效。
 
