@@ -201,12 +201,12 @@ export const SKILL_CONTRACTS = {
   },
   "web-document-api": {
     description:
-      "在已初始化 React Web 或 Plasmo Extension 下游中，同步导出按业务聚合的 API 与已实现业务流程说明；每次核对已有文档和当前代码差异，以通用结构、API 元数据、接口文档及业务关联交付，不输出本地代码和路径。",
+      "在已初始化 Workspace、React Web 或 Plasmo Extension 下游中，同步导出按业务聚合的 REST/GraphQL API、地址与认证约定及已实现业务流程说明；每次核对已有文档和当前代码差异，维护业务关联，不输出本地代码和路径。",
     title: "# Web Harness：同步导出 API 与业务文档",
     displayName: "Web Harness：同步导出 API 与业务文档",
-    shortDescription: "按业务聚合 API 与已实现流程，每次核对代码差异并维护双向关联",
+    shortDescription: "聚合 REST/GraphQL、请求与调试地址、认证及业务流程，核对差异和关联",
     defaultPrompt:
-      "使用 $web-document-api 同步导出 API 与已实现业务说明：一份通用结构、一份 API 元数据与按业务聚合的接口文档，维护业务关联，每次核对已有文档和代码差异，不输出本地代码与路径。"
+      "使用 $web-document-api 同步导出 REST/GraphQL API 与已实现业务说明，记录 GraphQL 请求与 Playground 地址及认证约定，按业务聚合并维护关联，每次核对已有文档和代码差异，不输出本地代码与路径。"
   },
   "web-extract-i18n-strings": {
     description:

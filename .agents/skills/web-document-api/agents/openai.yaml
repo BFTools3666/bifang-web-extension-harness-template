@@ -1,4 +1,4 @@
 interface:
   display_name: "Web Harness：同步导出 API 与业务文档"
-  short_description: "按业务聚合 API 与已实现流程，每次核对代码差异并维护双向关联"
-  default_prompt: "使用 $web-document-api 同步导出 API 与已实现业务说明：一份通用结构、一份 API 元数据与按业务聚合的接口文档，维护业务关联，每次核对已有文档和代码差异，不输出本地代码与路径。"
+  short_description: "聚合 REST/GraphQL、请求与调试地址、认证及业务流程，核对差异和关联"
+  default_prompt: "使用 $web-document-api 同步导出 REST/GraphQL API 与已实现业务说明，记录 GraphQL 请求与 Playground 地址及认证约定，按业务聚合并维护关联，每次核对已有文档和代码差异，不输出本地代码与路径。"
