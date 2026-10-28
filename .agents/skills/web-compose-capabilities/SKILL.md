@@ -47,10 +47,9 @@ node .agents/skills/web-compose-capabilities/scripts/capabilities.ts resolve --h
 
 - 独立认证代码仅依赖注入的认证 API 与原子凭据存储，不要求组织、权限、业务 UI 或第三方运行库；这是低层资源独立性，不代表完整用户信息可以省略组织。存储适配器不能扩大当前宿主持久化授权。
 - 当前装配使用[固定应用模板](templates/application/files.ts)与[接线合同](templates/application/wiring.md)。当前已支持操作按其代码范围返回页面、路由导航、API/Query、状态与失败恢复接线；尚未覆盖的完整账号与组织目标逐项报告并补齐，不能仅凭模板存在声明已实现。基础真实 HomePage 必须由需求提供。
-- 主界面和认证源自既有客户端实现，商品源自其交互原型；按 [提取与定制合同](templates/application/extraction.md) 区分来源证据。文案使用 content.translations，已选能力正文通过 content.pageSources 适配，测试 fixtures 仅留测试目录；不复制来源品牌、产品正文、服务地址或评审结论。产品接口必须提供真实 adapter，下游按已授权合同实施。
+- 主界面和认证源自既有客户端实现，商品的旧交互原型仅保留来源元数据，当前视觉统一按 DESIGN.md；按 [提取与定制合同](templates/application/extraction.md) 区分来源证据。文案使用 content.translations，已选能力正文通过 content.pageSources 适配，测试 fixtures 仅留测试目录；不复制来源品牌、产品正文、服务地址或评审结论。产品接口必须提供真实 adapter，下游按已授权合同实施。
 - 当前基础身份资源包含登录页面与路由、主界面用户信息、匿名守卫、安全返回、Token 自动携带及退出/当前 401 清理；完整用户方案还必须接齐账号、组织、成员及所需生命周期。权限码同时用于路由、页面、菜单、动作元素及提交前复核。`.harness/application-wiring.json` 仅记录机械接线，不替代 PRD 或验证。
 - [账户协议参考](templates/compositions/account-workspace/README.md) 仅保留协议、Mock 服务、精确存储及回归，不再提供第二套应用/会话/UI；首版装配统一使用下文 `applicationFiles`，注册、找回等操作按真实需求另行实施。
-- [来源商品设计参考](templates/compositions/purchase-checkout/source-reference/index.html) 保留中性费用中心、商品选购、订单/钱包结构；[购买最小演示](templates/compositions/purchase-checkout/commerce-reference.html) 用于专项交互参考。两者均为 Web 离线设计，无真实扣款，也不作为当前基础装配入口。
 - 先核对真实契约和具体操作，再适配模板；已经实现的模块复用唯一所有者。组织 ID 负责租户隔离，组织用户 ID 负责成员授权、成员私有范围及审计，详见组织知识；身份、组织、权限、查询与业务各自拥有状态，不另建会话或相互反向调用。组织管理不切换操作者身份；切换不得代替授权。organization.manage 单独接通组织设置，菜单、直达和写入按 settings.read/update 授权，不按 owner 名称放行；完整 identity.workspace 另接成员管理和角色管理。switch 不自动生成管理、注册或邀请。账号触发器显示单一昵称或用户名，菜单无重复身份摘要及图标，切换组织、个人设置、修改密码打开弹窗，末项为退出；Web 默认左侧包含工作台、组织管理分组与底部设置，组织管理下设组织设置、成员管理、角色管理三个子页，本人邀请在切换弹窗。具体前后端合同以 Auth 标准和接线合同为准。
 - 功能选择不授予权限；列表、条件 GET 类读取及其余 RESTful 操作按 [列表查询协议强约定](../../../docs/DATA_ACCESS.md#列表查询协议强约定) 核对契约，返回实际协议缺口，不将模板当作服务事实。
 - 结果未知时先查询，不自动重放创建订单或支付；真实付费、生产账户和扣款没有因编写 Skill 或运行演示获得授权。

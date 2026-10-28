@@ -1,5 +1,6 @@
 import { execFile } from "node:child_process"
-import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
+import { cp, mkdir, mkdtemp, readFile, rm, writeFile, symlink } from "node:fs/promises"
+import os from "node:os"
 import path from "node:path"
 import { promisify } from "node:util"
 import { fileURLToPath } from "node:url"
@@ -14,9 +15,7 @@ import { startGoFixture } from "./go-identity-support.ts"
 
 /** 编译真实生成的 Go 服务及客户端，验证 HTTP 合同与重启后的持久化。 */
 test("Go identity adapter uses authoritative wire contracts and durable account revocation", async () => {
-  const cache = path.join(repositoryRoot, "node_modules/.cache")
-  await mkdir(cache, { recursive: true })
-  const root = await mkdtemp(path.join(cache, "go-identity-"))
+  const root = await mkdtemp(path.join(os.tmpdir(), "go-identity-"))
   const server = path.join(root, "contract_server")
   const run = promisify(execFile)
   const options = {
@@ -26,6 +25,16 @@ test("Go identity adapter uses authoritative wire contracts and durable account 
   }
   let stop: (() => Promise<void>) | undefined
   try {
+    await symlink(
+      path.join(repositoryRoot, "node_modules"),
+      path.join(root, "node_modules"),
+      process.platform === "win32" ? "junction" : "dir"
+    )
+    await writeFile(path.join(root, "package.json"), '{"private":true,"type":"module"}\n')
+    await writeFile(
+      path.join(root, "fixture-setup.ts"),
+      await readFile(path.join(repositoryRoot, "tests/setup.ts"), "utf8")
+    )
     const assets = ".agents/skills/go-implement-service/assets/go-service"
     await cp(path.join(repositoryRoot, assets), path.join(root, assets), { recursive: true })
     await generateGoServer(root, "contract_server", "contract_server")

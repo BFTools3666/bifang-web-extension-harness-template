@@ -18,6 +18,7 @@ export function WalletPage({ api, scope }: { api: WalletReadApi; scope: number }
       <Title order={1}>{t("walletTitle")}</Title>
       <ModuleState
         loading={query.isPending}
+        refreshing={query.isFetching && !query.isPending}
         error={query.error}
         empty={false}
         retry={() => {

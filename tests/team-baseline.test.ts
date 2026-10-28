@@ -1,6 +1,7 @@
 import { execFile } from "node:child_process"
 import { cp, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises"
 import path from "node:path"
+import os from "node:os"
 import { promisify } from "node:util"
 import { expect, test } from "vitest"
 import { generateGoServer } from "../.harness/tooling/workspace-server.ts"
@@ -12,9 +13,7 @@ import { HOME_SOURCE, runApplicationFixture } from "./application-wiring-fixture
 
 /** 在真实生成服务上验证两宿主团队 UI、HTTP adapter、权限与持久化，没有产品 Mock。 */
 test("完整账号基线在 Web/Extension 复用真实团队归属与权限服务", async () => {
-  const cache = path.join(repositoryRoot, "node_modules/.cache")
-  await mkdir(cache, { recursive: true })
-  const root = await mkdtemp(path.join(cache, "team-baseline-"))
+  const root = await mkdtemp(path.join(os.tmpdir(), "harness-team-baseline-"))
   const server = path.join(root, "ownership_server")
   const run = promisify(execFile)
   const goOptions = {
@@ -123,6 +122,26 @@ test("mutual membership keeps ownership and rejects cross-team authority", async
   await user.click(within(createDialog).getByRole("button", { name: "Create role" }))
   expect(await screen.findByText("reviewer")).toBeInTheDocument()
   expect((await teams.roles(org, 1, 100)).items).toHaveLength(3)
+  // 当前页复用真实列配置，不为固定服务排序生成假按钮。
+  await user.click(screen.getByRole("button", { name: "Configure columns" }))
+  await user.click(screen.getByRole("checkbox", { name: "Permissions" }))
+  expect(screen.queryByRole("separator", { name: "Resize Permissions" })).not.toBeInTheDocument()
+  await user.keyboard("{Escape}")
+  await waitFor(() => expect(screen.getByRole("button", { name: "Configure columns" })).toHaveFocus())
+  // 同 key 网络刷新失败保留旧行；访问拒绝必须立即隐藏，即使权限刷新失败。
+  const offlineRoles = vi.spyOn(teams, "roles").mockRejectedValue(new Error("offline"))
+  await act(async () => { await queryClient.invalidateQueries({queryKey:["organization-management"]}) })
+  expect(screen.getByRole("row", { name: /Reviewers/ })).toBeInTheDocument()
+  offlineRoles.mockRestore()
+  const deniedRoles = vi.spyOn(teams, "roles").mockRejectedValue(new ApiError({kind:"http",status:403,code:"forbidden",message:"forbidden",retryable:false}))
+  const unavailablePermissions = vi.spyOn(permissionSession, "refresh").mockRejectedValue(new Error("offline"))
+  await act(async () => { await queryClient.invalidateQueries({queryKey:["organization-management"]}) })
+  await waitFor(() => expect(screen.queryByRole("row", { name: /Reviewers/ })).not.toBeInTheDocument())
+  expect(screen.getByRole("button", { name: "Create role" })).toBeDisabled()
+  expect(screen.getByRole("button", { name: "Configure columns" })).toBeDisabled()
+  deniedRoles.mockRestore(); unavailablePermissions.mockRestore()
+  await act(async () => { await queryClient.invalidateQueries({queryKey:["organization-management"]}) })
+  await screen.findByRole("row", { name: /Reviewers/ })
   await waitFor(() => expect(within(screen.getByRole("row", { name: /Reviewers/ })).getByRole("button", { name: "Configure permissions" })).toBeEnabled())
   await user.click(within(await screen.findByRole("row", { name: /Reviewers/ })).getByRole("button", { name: "Configure permissions" }))
   let editor = await screen.findByRole("dialog")

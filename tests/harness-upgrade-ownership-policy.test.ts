@@ -63,6 +63,7 @@ describe("upgrade ownership policy consistency", () => {
       })
     }
     for (const productExtensibleDocument of [
+      "DESIGN.md",
       "docs/API.md",
       "docs/DATA_ACCESS.md",
       "docs/MANTINE_UI_GUIDELINES.md",

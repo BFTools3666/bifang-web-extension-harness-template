@@ -24,6 +24,7 @@ export function OrganizationSettingsPage() {
       <Title order={1}>{t("orgSettingsTitle")}</Title>
       <ModuleState
         loading={query.isPending}
+        refreshing={query.isFetching && !query.isPending}
         error={query.error}
         empty={false}
         retry={() => {

@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process"
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises"
+import { mkdir, mkdtemp, rm, writeFile, symlink, readFile } from "node:fs/promises"
+import os from "node:os"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { describe, expect, test } from "vitest"
@@ -20,12 +21,20 @@ import { extensionFiles } from "../.harness/tooling/templates/extension.ts"
 describe("generated HTTP foundation", () => {
   /** 在本地依赖可解析的隔离目录执行完整生成测试，覆盖真实 Ky 与既有认证竞态。 */
   test("runs the generated Ky and request-context regressions", async () => {
-    // 缓存目录位于项目内，使跨平台解析使用现有本地依赖且无需符号链接或额外安装。
-    const cacheRoot = path.resolve(import.meta.dirname, "../node_modules/.cache")
-    await mkdir(cacheRoot, { recursive: true })
+    // 源外夹具精确复用已声明依赖，不在模板内部创建工程。
     // 保存本次隔离测试根，结束时只清理本次创建的目录。
-    const root = await mkdtemp(path.join(cacheRoot, "harness-http-"))
+    const root = await mkdtemp(path.join(os.tmpdir(), "harness-http-"))
     try {
+      await symlink(
+        path.join(path.resolve(import.meta.dirname, ".."), "node_modules"),
+        path.join(root, "node_modules"),
+        process.platform === "win32" ? "junction" : "dir"
+      )
+      await writeFile(path.join(root, "package.json"), '{"private":true,"type":"module"}\n')
+      await writeFile(
+        path.join(root, "fixture-setup.ts"),
+        await readFile(path.join(path.resolve(import.meta.dirname, ".."), "tests/setup.ts"), "utf8")
+      )
       for (const directory of [
         "src/data/api/client",
         "src/data/storage",
@@ -139,10 +148,18 @@ describe("generated HTTP foundation", () => {
 for (const projectType of ["web", "extension"] as const) {
   /** 执行真实生成组件与 Router/Query 配置，模板字符串本身不是交互验证。 */
   test("runs generated " + projectType + " HTTP routing and UI regressions", async () => {
-    const cacheRoot = path.resolve(import.meta.dirname, "../node_modules/.cache")
-    await mkdir(cacheRoot, { recursive: true })
-    const root = await mkdtemp(path.join(cacheRoot, "harness-http-ui-"))
+    const root = await mkdtemp(path.join(os.tmpdir(), "harness-http-ui-"))
     try {
+      await symlink(
+        path.join(path.resolve(import.meta.dirname, ".."), "node_modules"),
+        path.join(root, "node_modules"),
+        process.platform === "win32" ? "junction" : "dir"
+      )
+      await writeFile(path.join(root, "package.json"), '{"private":true,"type":"module"}\n')
+      await writeFile(
+        path.join(root, "fixture-setup.ts"),
+        await readFile(path.join(path.resolve(import.meta.dirname, ".."), "tests/setup.ts"), "utf8")
+      )
       const config = createProjectConfig({
         projectType,
         name: "Foundation fixture",
@@ -259,7 +276,7 @@ declare module "@tanstack/react-router" {
                       "src/theme/ColorSchemeControl.test.tsx",
                       "src/ExtensionShell.test.tsx"
                     ],
-              setupFiles: [path.resolve(import.meta.dirname, "setup.ts")]
+              setupFiles: ["fixture-setup.ts"]
             }
           })
       )

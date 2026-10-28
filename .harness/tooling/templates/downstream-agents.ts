@@ -24,7 +24,7 @@ export function downstreamAgents(config: ProjectConfig): string {
 
 ## 最小必读
 
-先检查工作区并保护已有修改。读取本文件、\`.harness/project.json\` 和 \`docs/AGENT_POLICY.md\` 中的能力偏好、标题生命周期、持久计划、并行、冒烟与 E2E 规则。修改代码、测试、文档或配置前读取 \`docs/ENGINEERING_RULES.md\` 及命中的 Skill。主题、页面、Popup、Options、布局、组件、交互状态、响应式或 UI 无障碍工作读取 \`docs/MANTINE_UI_GUIDELINES.md\`；环境工作读取 \`docs/RUNTIME_CONFIGURATION.md\`；日志/错误处理读取 \`docs/LOGGING.md\`；分页、HTTP 请求头、认证、REST/OpenAPI、GraphQL、SSE、多个远端接口、多来源事件流或 RxJS 工作读取 \`docs/DATA_ACCESS.md\`。查阅或采用可选基础 API 与数据模型合同才读取 \`docs/API.md\`，收录文档不代表服务已配置或接入；其他事实按需读取。
+先检查工作区并保护已有修改。读取本文件、\`.harness/project.json\` 和 \`docs/AGENT_POLICY.md\` 中的能力偏好、标题生命周期、持久计划、并行、冒烟与 E2E 规则。修改代码、测试、文档或配置前读取 \`docs/ENGINEERING_RULES.md\` 及命中的 Skill。主题、页面、Popup、Options、布局、组件、交互状态、响应式或 UI 无障碍工作先读取 \`DESIGN.md\`，再读取 \`docs/MANTINE_UI_GUIDELINES.md\`；环境工作读取 \`docs/RUNTIME_CONFIGURATION.md\`；日志/错误处理读取 \`docs/LOGGING.md\`；分页、HTTP 请求头、认证、REST/OpenAPI、GraphQL、SSE、多个远端接口、多来源事件流或 RxJS 工作读取 \`docs/DATA_ACCESS.md\`。查阅或采用可选基础 API 与数据模型合同才读取 \`docs/API.md\`，收录文档不代表服务已配置或接入；其他事实按需读取。
 
 ${hostMinimumReading}需求语义和唯一 PRD 归 \`$web-define-product\`，独立能力与资源选择归 \`$web-compose-capabilities\`，实际桌面布局和原型归 \`$web-design-prototype\`，真实页面与业务代码及模板装配归 \`$web-implement-change\`。各阶段只读已选知识与模板，不按产品分类自动生成。选择与操作范围复用唯一 PRD；模板类型与宿主限制以索引为准。\n\n授权范围包含有限 REST/GraphQL HTTP 接入或 API Mock 迁移时，调用 \`$web-connect-http-service\`；UI/路由呈现与候选验收仍由调用流程负责。\n\n既有工作树或登记表审计从主检出目录调用 \`$web-audit-worktrees\`，只读检查不授权清理。比较 Harness 或重新规划升级时调用 \`$web-preview-harness-upgrade\`；已批准的应用与基线登记由 \`$web-upgrade-harness\` 负责。\n\n独立事件分别委托 \`$web-implement-auth-session\`、\`$web-review-api-contract\`、\`$web-review-module-boundaries\`、\`$web-implement-access-control\`、\`$web-implement-write-recovery\`、\`$web-implement-browser-storage\` 与 \`$web-implement-event-stream\`；未命中不调用。传入已确认范围、当前阶段和有效证据，叶子只完成当前职责后返回，不反向重启编排。完整读取命中的 Skill，参考资料只读适用阶段/宿主/协议章节。
 
@@ -58,6 +58,7 @@ ${hostSources}- \`src/pagination/\`：受管 page/pageSize 会话状态与空页
 - \`docs/api/\`：由 \`$web-document-api\` 同步聚合 API 与已实现业务文档，维护关联并每次核对代码差异；一份通用结构、一份元数据与 N 份接口，API 和业务分文件夹；局部仅同步受影响范围，不输出本地代码或路径。
 - \`docs/DATA_ACCESS.md\`：分页、请求头、认证、数据访问、SSE、可选 RxJS 与状态归属。
 - \`docs/MANTINE_UI_GUIDELINES.md\`：Mantine 主题、令牌、布局、组件语义、交互状态、响应式、无障碍与当前宿主 UI 规范。
+- \`DESIGN.md\`：统一设计方向、语义令牌原则、四层样式基座与复用边界；当前前端成员独立持有。
 - \`docs/RUNTIME_CONFIGURATION.md\`：三环境、公开配置结构与构建映射。
 - \`docs/LOGGING.md\`：结构化日志、错误边界、脱敏与正式产物检查。
 - \`docs/\`：持久策略、工程、发布与技术债记录。
@@ -96,9 +97,9 @@ ${hostSkills}- \`$web-refactor-code\`：在保持行为不变时整理 TypeScrip
 - \`$web-upgrade-harness\`：保留产品所有权并同步较新的 Web Harness 前端工程层。
 - \`$web-verify-delivery\`：运行并报告 Web Harness 前端交付门禁。
 
-## 设计风格支持
+## 设计标准
 
-项目级 \`.agents/skills/design-taste-frontend/SKILL.md\` 提供落地页、作品集和视觉改版的风格建议；适用设计任务先读取 \`docs/MANTINE_UI_GUIDELINES.md\` 的设计支持边界再调用 \`$design-taste-frontend\`。它独立于规范标识为 \`web-*\` 的维护 Skills，不自动用于数据表、后台工作流或 Extension Popup/Options。项目的 Mantine、纯 TypeScript、Query/Jotai、i18n、宿主权限和日常验证规则优先；上游 Tailwind、Next、动画、字体与组件库偏好不授权新增依赖、远程资源、浏览器检查、构建或其他外部操作。有效已有版本由项目维护，Harness 升级保留它。
+设计与固化模板只消费当前成员的 \`DESIGN.md\` 和 \`docs/MANTINE_UI_GUIDELINES.md\`。不安装、调用或恢复独立旧风格资源；实际 theme 和基础组件是唯一视觉来源，业务语义和宿主边界继续保留。
 
 ## 验证闭环
 

@@ -8,6 +8,30 @@ import {
 import { digest, git, persistPlan, planFor, upgradeFixture } from "./harness-upgrade-fixture.ts"
 import { RETIRED_AUTH_TEMPLATE_PATHS } from "../.agents/skills/web-upgrade-harness/scripts/upgrade-policy.ts"
 
+/** 旧视觉样例不得重新进入工程候选，已有用户副本只报告阻断而不自动删除。 */
+test.each(["commerce-reference.css", "source-reference/index.html"])(
+  "blocks retired visual asset %s",
+  async (name) => {
+    const fixture = await upgradeFixture()
+    const retired =
+      ".agents/skills/web-compose-capabilities/templates/compositions/purchase-checkout/" + name
+    for (const root of [fixture.candidate, fixture.target]) {
+      await mkdir(path.dirname(path.join(root, retired)), { recursive: true })
+      await writeFile(path.join(root, retired), "user retained visual source\n")
+      const plan = await planFor(fixture)
+      expect(plan.entries).toContainEqual(
+        expect.objectContaining({
+          path: retired,
+          ownership: "tombstone",
+          classification: "blocked"
+        })
+      )
+      expect(await readFile(path.join(root, retired), "utf8")).toBe("user retained visual source\n")
+      await rm(path.join(root, retired))
+    }
+  }
+)
+
 /** 退役上游副本只产生显式删除或冲突，不能自动删除或触及产品会话。 */
 test.each([false, true])(
   "protects retired account assets with local changes=%s",

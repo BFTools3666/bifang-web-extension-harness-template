@@ -66,6 +66,18 @@ describe("workspace creation", () => {
           await readFile(path.join(target, ".harness/workspace.json"), "utf8")
         )
         expect(config.members.map((item: { type: string }) => item.type)).toEqual(expected)
+        const design = await readFile(path.join(target, "DESIGN.md"), "utf8")
+        expect(design).toContain("首要设计依据")
+        for (const member of config.members.filter(
+          (item: { type: string }) => item.type !== "server"
+        )) {
+          expect(await readFile(path.join(target, member.directory, "DESIGN.md"), "utf8")).toBe(
+            design
+          )
+          expect(
+            await readFile(path.join(target, member.directory, "AGENTS.md"), "utf8")
+          ).toContain("先读取 `DESIGN.md`")
+        }
         expect(config.service.developmentBaseUrl).toBe(
           mode === "existing" ? "https://api.example.test" : "http://127.0.0.1:8080"
         )

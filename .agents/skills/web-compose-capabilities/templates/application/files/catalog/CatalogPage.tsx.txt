@@ -40,6 +40,7 @@ export function CatalogPage({
       <Text c="dimmed">{t("catalogDescription")}</Text>
       <ModuleState
         loading={query.isPending}
+        refreshing={query.isFetching && !query.isPending}
         error={query.error}
         empty={query.data?.length === 0}
         retry={() => {
@@ -50,7 +51,7 @@ export function CatalogPage({
         {categories.length > 0 && (
           <nav aria-label={t("catalogCategories")}>
             <Stack gap="xs">
-              <Text fw={600}>{t("catalogCategories")}</Text>
+              <Text fw="var(--ui-font-weight-strong)">{t("catalogCategories")}</Text>
               <Button
                 variant={currentCategory === null ? "light" : "subtle"}
                 aria-pressed={currentCategory === null}

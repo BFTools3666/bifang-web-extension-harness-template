@@ -171,6 +171,7 @@ export async function initializeWorkspace(
   // 根仅保留协作所需规则和 Skills，创建器及源测试不进入终端工作区。
   const retained = new Set([
     ".agents",
+    "DESIGN.md",
     "docs",
     "LICENSE.en.md",
     "LICENSE.zh-CN.md",

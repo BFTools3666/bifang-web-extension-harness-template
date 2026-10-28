@@ -38,6 +38,7 @@ const TOP_LEVEL_SEED_NAMES = new Set([
   ".prettierignore",
   ".prettierrc.json",
   "AGENTS.md",
+  "DESIGN.md",
   "LICENSE.en.md",
   "LICENSE.zh-CN.md",
   "README.md",

@@ -79,7 +79,7 @@ describe("Harness Skill and Agent policy validation", () => {
     "knowledge/organization.md",
     "templates/identity/session.test.ts.txt",
     "templates/compositions/account-workspace/data/storage/authSessionStorage.ts.txt",
-    "templates/compositions/purchase-checkout/commerce-reference.js"
+    "templates/orders/design.md"
   ])("requires capability library resource %s", async (resource) => {
     const root = await copyRepository()
     await rm(path.join(root, ".agents/skills/web-compose-capabilities", resource))

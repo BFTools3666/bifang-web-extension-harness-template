@@ -12,7 +12,7 @@ description: 在已初始化 React Web 或 Plasmo Extension 下游处理新页�
 1. 仅在已初始化下游运行：确认有效的 Workspace/前端成员身份与规范工作区；已有 Git 时再核对顶层归属，无 Git 不阻断；没有下游身份时，停止原型工作，创建需求输入交给源实例化流程；成功后切换到下游并复用原文继续。Harness 自身维护本 Skill 不受此限制。
    多前端 Workspace 的下列 prepare/present/approve/waive/check 命令均须追加 `--member <精确成员目录>`，或从该成员目录运行；scope 使用成员前缀，PRD、原型和登记仍保存根目录。新增成员必须独立取得首版确认，不能借用其他成员的批准。
 2. 正式 PRD、原型与登记只按各自事件创建，也不读写全局 Skills；创建需求语义与下游 PRD 归 `$web-define-product`，能力选择归 `$web-compose-capabilities`，本 Skill 只拥有实际桌面布局、交互原型与登记。所选能力优先组合 catalog 中的固定 design.md 与页面模板，保持登录、用户区、导航、权限和购买的既定交互；按需求补齐真实首页与正文，不重新随意设计能力页。完整创建的首版也必须展示预览并等待用户明确确认；工程或产品范围确认不能批准尚未展示的设计。
-3. 读取最新 `docs/product_spec/` 索引与正文、`docs/MANTINE_UI_GUIDELINES.md` 的当前宿主章节和直接相关 UI。没有已确认 PRD、目标/边界有歧义时先用 `$web-define-product`；PRD 的结构和范围补齐归需求定义，记录合同见 [PRD 结构](../web-define-product/references/prd-outline.md)。只逐项澄清影响当前设计的关键缺口，复用已确认事实，不重启整套问卷。
+3. 读取最新 `docs/product_spec/` 索引与正文、当前前端成员的 `DESIGN.md`、`docs/MANTINE_UI_GUIDELINES.md` 的当前宿主章节和直接相关 UI。以设计契约为首要设计依据，继承令牌、四层样式基座、控件语义与表格默认能力；不把示例色值、可选增强或批量业务动作当成已选产品功能。没有已确认 PRD、目标/边界有歧义时先用 `$web-define-product`；PRD 的结构和范围补齐归需求定义，记录合同见 [PRD 结构](../web-define-product/references/prd-outline.md)。只逐项澄清影响当前设计的关键缺口，复用已确认事实，不重启整套问卷。
 4. Product Spec 是唯一 PRD，不另建 `docs/prd/`。需求须为 `Approved`；纯视觉变更复用有效 PRD，业务范围变化才回需求定义修订；原型摘要只登记在 `docs/prototypes/<scope>/review.json`，不复制为第二套需求或计划。登记不代表用户新增授权或交互质量已验证。
 5. 按 [功能模块组合](../web-compose-capabilities/references/requirements-selection.md) 继承已选模块与具体操作，只读对应知识和设计参考；未选能力不进入原型。管理目标组织与操作者身份分开，Extension 按实际 surface 适配。
 
@@ -21,7 +21,7 @@ description: 在已初始化 React Web 或 Plasmo Extension 下游处理新页�
 1. 为本轮范围分配稳定 kebab-case `scope`，如 `account-settings`；在 `docs/prototypes/<scope>/v1/prototype.html` 生成唯一原型。修订时递增版本并保留旧版本，它们是修订历史，不作为并行备选方案展示。
 2. 原型是可离线打开的独立 HTML，内联 CSS/JS 与所需小型资源，不引用 CDN、远程脚本或真实接口，不新增依赖。覆盖本轮主线、按钮目的地及相关加载、空、成功、错误、禁用与恢复交互；在交付说明和 review.md 清楚标识示例数据和模拟结果，原型页面遵守 UI 规范的业务 placeholder 与精简文案约束，不加入 Mock 提示条或原始需求备注。不得交付只有截图或失效按钮的原型。
 3. 仅面向桌面端，不规划、生成或验证 Mobile 支持：不增加手机/平板布局、移动断点、触控专用交互或移动端验收项。Web 遵循现有品牌、Mantine 令牌和桌面窗口尺寸；Extension 按桌面浏览器的 Popup、Options 等真实 surface 尺寸设计，紧凑 Popup 不等于 Mobile。通用 UI 规范中的移动优先建议不扩张本 Skill 的原型范围；产品实现的设备支持仍由产品范围及其工程规则决定。
-   HTML 是设计媒介，开发仍使用既有 React/Mantine/TypeScript/i18n。`design-taste-frontend` 只在 UI 规范允许的范围内调用，不让其多方案或移动偏好覆盖本 Skill。
+   HTML 是设计媒介，开发仍使用既有 React/Mantine/TypeScript/i18n。视觉与布局仅消费 `DESIGN.md` 与 Mantine 规范，不调用旧风格 Skill；业务流程、宿主与本 Skill 的桌面范围保留。
    Web 采用工作区时按 UI 规范“路由布局与插槽”展示父布局、叶页面与 URL 对应；慢加载保持外壳。只为已选操作展示认证页、安全返回与失败恢复，离线模拟不证明真实鉴权。
 4. 展示前自查主线、跳转、关键状态、键盘/焦点、标签、所有适用字段的业务占位提示、页面文案必要性及桌面窗口溢出；将实际证据、问题和未执行项写入版本目录 `review.md`。有浏览器能力时走查原型；没有时保留可打开文件并明确浏览器未检查，不伪造交互或桌面布局通过。此步骤不触发发布构建、候选验收或 E2E。
 5. 将影响规则、数据、状态及验收的发现返回 `$web-define-product`，由需求定义修订唯一 PRD 并复用或取得范围确认，再返回当前原型；本 Skill 不直接决定或批准需求范围。自查完成、消除阻断后展示唯一原型链接和最短试用路径，不提出 A/B 选择题，也不把修改意见变成新增方案。

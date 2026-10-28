@@ -4,7 +4,6 @@ import path from "node:path"
 import { promisify } from "node:util"
 import { RETIRED_PRD_OUTLINE_PATH } from "../../.harness/tooling/config.ts"
 import { pathExists, walkFiles } from "../../.harness/tooling/files.ts"
-import { DESIGN_SKILL_NAME, validateDesignSkill } from "../../.harness/tooling/design-skill.ts"
 import {
   EXPECTED_SKILLS,
   FORBIDDEN_SKILL_IDENTITY_LANGUAGE,
@@ -157,11 +156,9 @@ export async function validateSkills(root: string, errors: string[]): Promise<st
     .map(/* 执行 当前声明 函数的处理逻辑。 */ (entry) => entry.name)
     .sort()
   const expected = [...EXPECTED_SKILLS].sort()
-  const canonicalActual = actual.filter((skill) => skill !== DESIGN_SKILL_NAME)
-  if (JSON.stringify(canonicalActual) !== JSON.stringify(expected)) {
+  if (JSON.stringify(actual) !== JSON.stringify(expected)) {
     errors.push(`Skill directories must exactly match: ${expected.join(", ")}`)
   }
-  if (actual.includes(DESIGN_SKILL_NAME)) await validateDesignSkill(root, errors)
 
   const perSkillErrors = await Promise.all(
     EXPECTED_SKILLS.map(

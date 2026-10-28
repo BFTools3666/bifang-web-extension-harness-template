@@ -38,6 +38,7 @@ export const HARNESS_ONLY_PATHS = [
   ".agents/skills/web-curate-harness-memory",
   ".agents/skills/manage-project-surfaces",
   ".harness/tooling/init.ts",
+  ".harness/tooling/design-skill.ts",
   ".harness/tooling/install-design-skill.ts",
   ".harness/vendor/design-taste-frontend",
   ".harness/tooling/instantiate.ts",

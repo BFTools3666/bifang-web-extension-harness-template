@@ -1,3 +1,5 @@
+import { tableColumnFiles } from "./table-columns.ts"
+
 /** 列表表面与语义表格组合。 */
 const LIST_SURFACE = `import { Paper, Table, type TableProps } from "@mantine/core"
 import type { ReactNode } from "react"
@@ -50,6 +52,7 @@ export function ListTable({ className, ...props }: TableProps) {
   return (
     <Table
       {...props}
+      layout="fixed"
       horizontalSpacing="lg"
       verticalSpacing="md"
       className={[classes.table, className].filter(Boolean).join(" ")}
@@ -64,13 +67,13 @@ const LIST_STYLES = `.surface {
   overflow: hidden;
 }
 .scroll:focus-visible {
-  outline: 2px solid var(--mantine-primary-color-filled);
+  outline: var(--ui-focus-width) solid var(--mantine-primary-color-filled);
   outline-offset: -2px;
 }
 .table thead th {
   background: var(--mantine-color-body);
   color: var(--mantine-color-dimmed);
-  font-weight: 600;
+  font-weight: var(--ui-font-weight-strong);
 }
 .table td:last-child,
 .table thead th:last-child {
@@ -199,6 +202,11 @@ i18n.addResourceBundle(
     listChoosePageSize: "Choose rows per page",
     listRange: "{{from}}–{{to}} of {{total}}",
     listTotal: "{{total}} records"
+    ,listColumns: "Configure columns",
+    listColumnWidth: "{{column}} width (px)",
+    listColumnWidthPlaceholder: "Enter a width between 96 and 640 pixels",
+    listResizeColumn: "Resize {{column}}",
+    listResetColumns: "Reset columns"
   },
   true,
   true
@@ -215,6 +223,11 @@ i18n.addResourceBundle(
     listChoosePageSize: "选择每页显示数量",
     listRange: "第 {{from}}–{{to}} 条，共 {{total}} 条",
     listTotal: "共 {{total}} 条"
+    ,listColumns: "配置列",
+    listColumnWidth: "{{column}}列宽（像素）",
+    listColumnWidthPlaceholder: "填写 96 至 640 像素的列宽",
+    listResizeColumn: "调整{{column}}列宽",
+    listResetColumns: "重置列配置"
   },
   true,
   true
@@ -224,6 +237,7 @@ i18n.addResourceBundle(
 /** 标准列表同时生成到两种宿主，数据与请求仍由消费者拥有。 */
 export function listFiles(): Map<string, string> {
   return new Map([
+    ...tableColumnFiles(),
     ["src/pagination/ListSurface.tsx", LIST_SURFACE],
     ["src/pagination/listSurface.module.css", LIST_STYLES],
     ["src/pagination/ListFooter.tsx", LIST_FOOTER],

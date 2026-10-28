@@ -5,15 +5,23 @@ import { HttpErrorView } from "../../data/api/client/HttpErrorView"
 /** 统一固定能力页的加载、错误与空数据反馈。 */
 export interface ModuleStateProps {
   loading: boolean
+  refreshing?: boolean
   error: unknown
   empty: boolean
   retry(): void
 }
 
 /** 只显示稳定本地化反馈，原始服务错误不进入页面。 */
-export function ModuleState({ loading, error, empty, retry }: ModuleStateProps) {
+export function ModuleState({
+  loading,
+  refreshing = false,
+  error,
+  empty,
+  retry
+}: ModuleStateProps) {
   const { t } = useTranslation()
   if (loading) return <Text role="status">{t("applicationLoading")}</Text>
   if (error) return <HttpErrorView error={error} onRetry={retry} />
-  return empty ? <Text>{t("applicationEmpty")}</Text> : null
+  if (refreshing) return <Text role="status">{t("applicationRefreshing")}</Text>
+  return empty ? <Text role="status">{t("applicationEmpty")}</Text> : null
 }

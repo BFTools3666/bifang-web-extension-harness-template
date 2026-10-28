@@ -126,10 +126,10 @@ import { HttpFeedback } from "./data/api/client/HttpErrorView"
 import { reportHttpError } from "./data/api/client/httpFeedback"
 import { retryHttpQuery } from "./data/api/client/httpErrors"
 import { BRAND_TEXT_LUMINANCE_THRESHOLD, createBrandScale } from "./theme/brandScale"
-
-const SYSTEM_SANS = "ui-sans-serif, system-ui, -apple-system, sans-serif"
+import { designTokens , designVariables } from "./theme/designTokens"
 
 const theme = createTheme({
+  ...designTokens,
   colors: { brand: createBrandScale(BRAND.primaryColor) },
   primaryColor: "brand",
   primaryShade: { light: 6, dark: 4 },
@@ -137,15 +137,6 @@ const theme = createTheme({
   luminanceThreshold: BRAND_TEXT_LUMINANCE_THRESHOLD,
   focusRing: "auto",
   respectReducedMotion: true,
-  black: "#16181d",
-  defaultRadius: "md",
-  shadows: {
-    xs: "0 1px 2px rgba(22, 24, 29, 0.06)",
-    sm: "0 2px 8px rgba(22, 24, 29, 0.08)",
-    md: "0 8px 24px rgba(22, 24, 29, 0.1)"
-  },
-  fontFamily: SYSTEM_SANS,
-  headings: { fontFamily: SYSTEM_SANS }
 })
 const logger = createLogger("query")
 /** 当前执行上下文共享同一 QueryClient，供组件、loader 与命令式读取复用。 */
@@ -162,7 +153,7 @@ export const queryClient = new QueryClient({
 /** 说明 Providers 的稳定结构与职责边界。 */
 export function Providers({ children }: PropsWithChildren) {
   return (
-    <MantineProvider theme={theme} defaultColorScheme="auto" colorSchemeManager={colorSchemeManager}>
+    <MantineProvider theme={theme} cssVariablesResolver={designVariables} defaultColorScheme="auto" colorSchemeManager={colorSchemeManager}>
       <QueryClientProvider client={queryClient}><HttpFeedback />{children}</QueryClientProvider>
     </MantineProvider>
   )

@@ -3,7 +3,8 @@ import { describe, expect, test } from "vitest"
 import { createProjectConfig } from "../.harness/tooling/config.ts"
 import { repositoryRoot, path } from "./harness-tooling-support.ts"
 import { execFileSync } from "node:child_process"
-import { mkdir, mkdtemp, readdir, rm, writeFile, readFile } from "node:fs/promises"
+import { mkdir, mkdtemp, readdir, rm, writeFile, readFile, symlink } from "node:fs/promises"
+import os from "node:os"
 import { fileURLToPath } from "node:url"
 import { webFiles } from "../.harness/tooling/templates/web.ts"
 describe("account service protocol references", () => {
@@ -11,10 +12,18 @@ describe("account service protocol references", () => {
   test.each(["", "https://service.invalid"])(
     "账户协议参考通过类型检查和行为回归（测试地址：%s）",
     async (apiBaseUrl) => {
-      const cache = path.join(repositoryRoot, "node_modules/.cache")
-      await mkdir(cache, { recursive: true })
-      const root = await mkdtemp(path.join(cache, "account-starter-"))
+      const root = await mkdtemp(path.join(os.tmpdir(), "account-starter-"))
       try {
+        await symlink(
+          path.join(repositoryRoot, "node_modules"),
+          path.join(root, "node_modules"),
+          process.platform === "win32" ? "junction" : "dir"
+        )
+        await writeFile(path.join(root, "package.json"), '{"private":true,"type":"module"}\n')
+        await writeFile(
+          path.join(root, "fixture-setup.ts"),
+          await readFile(path.join(repositoryRoot, "tests/setup.ts"), "utf8")
+        )
         const config = createProjectConfig({
           projectType: "web",
           name: "账户组合 fixture",
@@ -98,7 +107,7 @@ describe("account service protocol references", () => {
             JSON.stringify({
               test: {
                 environment: "jsdom",
-                setupFiles: [path.join(repositoryRoot, "tests/setup.ts")],
+                setupFiles: ["fixture-setup.ts"],
                 include: ["src/**/*.test.{ts,tsx}"],
                 testTimeout: 10_000
               }
@@ -156,11 +165,19 @@ describe("account service protocol references", () => {
 
 /** 运行独立会话模板的 vitest 测试及严格类型检查，不引入组织、权限或UI。 */
 test("standalone identity template compiles and passes lifecycle behavior", async () => {
-  // 位于仓库依赖缓存内，模板中的 vitest 导入与下游一样从项目依赖解析。
-  const cache = path.join(repositoryRoot, "node_modules/.cache")
-  await mkdir(cache, { recursive: true })
-  const root = await mkdtemp(path.join(cache, "identity-template-"))
+  // 源外夹具精确复用已声明依赖，不在模板内部创建工程。
+  const root = await mkdtemp(path.join(os.tmpdir(), "identity-template-"))
   try {
+    await symlink(
+      path.join(repositoryRoot, "node_modules"),
+      path.join(root, "node_modules"),
+      process.platform === "win32" ? "junction" : "dir"
+    )
+    await writeFile(path.join(root, "package.json"), '{"private":true,"type":"module"}\n')
+    await writeFile(
+      path.join(root, "fixture-setup.ts"),
+      await readFile(path.join(repositoryRoot, "tests/setup.ts"), "utf8")
+    )
     for (const name of ["session.ts", "session.test.ts"])
       await writeFile(
         path.join(root, name),
@@ -194,7 +211,7 @@ test("standalone identity template compiles and passes lifecycle behavior", asyn
         path.join(root, "session.ts"),
         path.join(root, "session.test.ts")
       ],
-      { cwd: repositoryRoot, stdio: "pipe", timeout: 40_000 }
+      { cwd: root, stdio: "pipe", timeout: 40_000 }
     )
     const vitest = path.join(
       path.dirname(fileURLToPath(import.meta.resolve("vitest/package.json"))),

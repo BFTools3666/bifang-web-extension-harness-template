@@ -30,7 +30,7 @@ const REQUIRED_SOURCE_FILES = [
   ".agents/skills/web-compose-capabilities/templates/application/files/identity/AccountMenu.tsx.txt",
   ".agents/skills/web-compose-capabilities/templates/application/files/organization/OrganizationContext.tsx.txt",
   ".agents/skills/web-compose-capabilities/knowledge/identity.md",
-  ".agents/skills/web-compose-capabilities/templates/compositions/purchase-checkout/commerce-reference.js",
+  ".agents/skills/web-compose-capabilities/templates/orders/design.md",
   ".agents/skills/web-review-api-contract/SKILL.md",
   ".agents/skills/web-review-api-contract/agents/openai.yaml",
   ".agents/skills/web-review-module-boundaries/SKILL.md",

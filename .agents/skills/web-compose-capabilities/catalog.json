@@ -779,99 +779,19 @@
       "modules": ["identity", "catalog", "orders", "wallet-payments"],
       "templates": [
         {
-          "path": "templates/compositions/purchase-checkout/commerce-reference.css",
-          "kind": "demo",
-          "hosts": ["web"]
+          "path": "templates/catalog/design.md",
+          "kind": "design",
+          "hosts": ["web", "extension"]
         },
         {
-          "path": "templates/compositions/purchase-checkout/commerce-reference.html",
-          "kind": "demo",
-          "hosts": ["web"]
+          "path": "templates/orders/design.md",
+          "kind": "design",
+          "hosts": ["web", "extension"]
         },
         {
-          "path": "templates/compositions/purchase-checkout/commerce-reference.js",
-          "kind": "demo",
-          "hosts": ["web"]
-        },
-        {
-          "path": "templates/compositions/purchase-checkout/source-reference/index.html",
-          "kind": "demo",
-          "hosts": ["web"]
-        },
-        {
-          "path": "templates/compositions/purchase-checkout/source-reference/shell.css",
-          "kind": "demo",
-          "hosts": ["web"]
-        },
-        {
-          "path": "templates/compositions/purchase-checkout/source-reference/commerce.css",
-          "kind": "demo",
-          "hosts": ["web"]
-        },
-        {
-          "path": "templates/compositions/purchase-checkout/source-reference/responsive.css",
-          "kind": "demo",
-          "hosts": ["web"]
-        },
-        {
-          "path": "templates/compositions/purchase-checkout/source-reference/center.css",
-          "kind": "demo",
-          "hosts": ["web"]
-        },
-        {
-          "path": "templates/compositions/purchase-checkout/source-reference/checkout.css",
-          "kind": "demo",
-          "hosts": ["web"]
-        },
-        {
-          "path": "templates/compositions/purchase-checkout/source-reference/center-responsive.css",
-          "kind": "demo",
-          "hosts": ["web"]
-        },
-        {
-          "path": "templates/compositions/purchase-checkout/source-reference/demo-data.js",
-          "kind": "demo",
-          "hosts": ["web"]
-        },
-        {
-          "path": "templates/compositions/purchase-checkout/source-reference/catalog-view.js",
-          "kind": "demo",
-          "hosts": ["web"]
-        },
-        {
-          "path": "templates/compositions/purchase-checkout/source-reference/records-view.js",
-          "kind": "demo",
-          "hosts": ["web"]
-        },
-        {
-          "path": "templates/compositions/purchase-checkout/source-reference/center-view.js",
-          "kind": "demo",
-          "hosts": ["web"]
-        },
-        {
-          "path": "templates/compositions/purchase-checkout/source-reference/checkout-view.js",
-          "kind": "demo",
-          "hosts": ["web"]
-        },
-        {
-          "path": "templates/compositions/purchase-checkout/source-reference/order-dialog.js",
-          "kind": "demo",
-          "hosts": ["web"]
-        },
-        {
-          "path": "templates/compositions/purchase-checkout/source-reference/page-view.js",
-          "kind": "demo",
-          "hosts": ["web"]
-        },
-        {
-          "path": "templates/compositions/purchase-checkout/source-reference/demo-actions.js",
-          "kind": "demo",
-          "hosts": ["web"]
-        },
-        {
-          "path": "templates/compositions/purchase-checkout/source-reference/README.md",
-          "kind": "demo",
-          "hosts": ["web"]
+          "path": "templates/wallet-payments/design.md",
+          "kind": "design",
+          "hosts": ["web", "extension"]
         }
       ],
       "operations": ["orders.purchase"]

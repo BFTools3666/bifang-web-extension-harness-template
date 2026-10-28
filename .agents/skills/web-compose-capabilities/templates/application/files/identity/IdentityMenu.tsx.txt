@@ -50,7 +50,7 @@ export function IdentityMenu({
             <Avatar src={avatar || null} size="sm" radius="xl">
               {name.slice(0, 1)}
             </Avatar>
-            <Text fw={600} truncate="end" maw={{ base: "7rem", sm: "12rem" }} title={name}>
+            <Text fw="var(--ui-font-weight-strong)" truncate="end" maw={{ base: "7rem", sm: "12rem" }} title={name}>
               {name}
             </Text>
             <span aria-hidden="true">⌄</span>

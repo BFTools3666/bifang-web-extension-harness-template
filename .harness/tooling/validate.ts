@@ -148,7 +148,6 @@ export async function validateProject(rootInput: string): Promise<string[]> {
       ".harness/tooling/project-memory.ts",
       ".harness/tooling/release.ts",
       ".harness/tooling/skill-validation.ts",
-      ".harness/tooling/design-skill.ts",
       ".harness/tooling/source-size-policy.ts",
       ".harness/tooling/version.ts",
       ...(config.projectType === "web"
@@ -204,6 +203,7 @@ export async function validateProject(rootInput: string): Promise<string[]> {
       "docs/DATA_ACCESS.md",
       "docs/ENGINEERING_RULES.md",
       "docs/MANTINE_UI_GUIDELINES.md",
+      "DESIGN.md",
       "docs/LOGGING.md",
       "docs/RELEASE.md",
       "docs/RUNTIME_CONFIGURATION.md",

@@ -1,4 +1,4 @@
-import { Alert, Button, Group, PasswordInput, Stack, Text, TextInput } from "@mantine/core"
+import { Alert, Button, PasswordInput, Stack, Text, TextInput } from "@mantine/core"
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 import { ApiError } from "../../data/api/client/httpClient"
@@ -115,7 +115,7 @@ export function RegistrationPage({
   return (
     <AuthLayout title={t("registrationTitle")}>
       {error && (
-        <Alert color="red" role="alert">
+        <Alert color={stage === "unknown" ? "orange" : "red"} role="alert">
           {t(error)}
         </Alert>
       )}
@@ -138,10 +138,9 @@ export function RegistrationPage({
           />
           {api.sendCode && stage === "new" && (
             <>
-              <Group align="flex-start" wrap="nowrap" gap="xs">
+              <Stack gap="xs">
                 <TextInput
                   ref={codeRef}
-                  style={{ flex: 1 }}
                   label={t("registrationCode")}
                   placeholder={t("registrationCodePlaceholder")}
                   inputWrapperOrder={["label", "input", "description", "error"]}
@@ -158,7 +157,6 @@ export function RegistrationPage({
                   error={codeError ? t(codeError) : undefined}
                 />
                 <Button
-                  mt={24}
                   type="button"
                   variant="default"
                   loading={verification.sending}
@@ -171,14 +169,14 @@ export function RegistrationPage({
                     ? t("registrationResend", { count: verification.seconds })
                     : t("registrationSend")}
                 </Button>
-              </Group>
+              </Stack>
               {verification.receipt?.mocked && !verification.expired && (
                 <Text role="status" size="sm">
                   {t("registrationCodePreview", { code: verification.receipt.code })}
                 </Text>
               )}
               {verification.error && (
-                <Alert role="status" color="red">
+                <Alert role="alert" color={verification.error === "verificationSendUnknown" ? "orange" : "red"}>
                   {t(
                     verification.error === "verificationSendUnknown"
                       ? "verificationSendUnknown"
@@ -192,7 +190,9 @@ export function RegistrationPage({
             ref={passwordRef}
             label={t("identityPassword")}
             placeholder={t("identityPasswordPlaceholder")}
-            description={stage === "new" && api.passwordPolicy ? t(api.passwordPolicy.messageKey) : undefined}
+            description={
+              stage === "new" && api.passwordPolicy ? t(api.passwordPolicy.messageKey) : undefined
+            }
             error={passwordError ? t(passwordError) : undefined}
             autoComplete={stage === "new" ? "new-password" : "current-password"}
             required

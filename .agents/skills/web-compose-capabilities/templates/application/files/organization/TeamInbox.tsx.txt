@@ -43,6 +43,7 @@ export function TeamInbox({
       <Title order={2}>{t("orgIncomingInvitations")}</Title>
       <ModuleState
         loading={query.isPending}
+        refreshing={query.isFetching && !query.isPending}
         error={query.error}
         empty={false}
         retry={() => {
@@ -50,7 +51,7 @@ export function TeamInbox({
         }}
       />
       {mutation.status === "unknown" && (
-        <Alert role="alert">
+        <Alert color="orange" role="alert">
           {t("teamUnknown")}
           <Button
             onClick={() => {
@@ -63,9 +64,8 @@ export function TeamInbox({
       )}
       {mutation.status === "saved" && <Text role="status">{t("teamUpdated")}</Text>}
       <ListSurface label={t("orgIncomingInvitations")} scroll={false} footer={query.data && !query.isError ? <ListFooter state={request} total={query.data.total} change={change} disabled={mutation.disabled || query.isFetching} /> : undefined}>
-      {query.data?.total === 0 && <Text className={classes.state} ta="center" c="dimmed">{t("orgNoInvitations")}</Text>}
-      {!query.isError &&
-        query.data?.items.map((invitation) => (
+      {query.data?.total === 0 && <Text role="status" className={classes.state} ta="center" c="dimmed">{t("orgNoInvitations")}</Text>}
+      {query.data?.items.map((invitation) => (
           <Group className={classes.row} key={invitation.id} justify="space-between">
             <Text>
               {invitation.organizationName} · {t("teamStatus_" + invitation.status)}

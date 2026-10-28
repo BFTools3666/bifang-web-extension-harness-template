@@ -1,6 +1,6 @@
 # 中性页面模板的来源与定制
 
-主界面和认证最初基于 `bifang-mini-cb` 的实际 React 实现提取；账号下拉、持续外壳及当前组织槽位进一步参考 `bifang-usage-leaderboard` 的实际实现。商品、订单和钱包以原项目的交互原型为设计来源。来源快照和 SHA-256 见 [source-map.json](source-map.json)，来源条目中的 `project` 覆盖默认来源项目。这些摘要只用于追溯，不是发布或产品验收证据，使用模板不要求来源项目存在。
+主界面和认证最初基于 `bifang-mini-cb` 的实际 React 实现提取；账号下拉、持续外壳及当前组织槽位进一步参考 `bifang-usage-leaderboard` 的实际实现。商品、订单和钱包最初从原项目交互原型提取业务结构，旧视觉仅属于历史来源。来源快照和 SHA-256 见 [source-map.json](source-map.json)，来源条目中的 `project` 覆盖默认来源项目。这些摘要只用于追溯，不是发布或产品验收证据，使用模板不要求来源项目存在。
 
 ## 已确认规范与来源事实
 
@@ -13,7 +13,7 @@
 | 实际实现 | `src/features/client/ClientLayout.tsx`、`AccountMenu.tsx`、`Preferences.tsx`    | 品牌、侧栏、顶部账号区、偏好与正文插槽；Web 多页提供侧栏，单页和 Extension 使用紧凑导航 |
 | 实际实现 | `src/features/auth/AuthPage.tsx`、`session.ts`、`src/data/api/auth/mockAuth.ts` | 品牌说明与表单分区、输入保留、认证生命周期；独立用户能力使用一个会话 owner，接口为 Mock |
 | 交互原型 | `docs/prototypes/saas-commerce/v2/catalog-view.js`、`checkout-view.js`          | 商品分类与卡片、购买确认的商品说明和订单摘要分区，接入现有购买协调器                    |
-| 交互原型 | 同目录 `center-view.js`、`records-view.js`、`order-dialog.js`                   | 费用中心、订单与钱包的丰富设计参考；基础代码只承诺当前 contracts 支持的读取与购买流程   |
+| 交互原型 | 同目录 `center-view.js`、`records-view.js`、`order-dialog.js`                   | 费用中心、订单与钱包的历史结构追溯；基础代码只承诺当前 contracts 支持的读取与购买流程   |
 
 [账户协议参考](../compositions/account-workspace/README.md) 只保留服务协议、验证码、Mock 与精确存储回归；旧主壳、设置、注册/找回 UI 和第二套会话已退役。当前唯一装配采用 applicationFiles，注册/找回按真实需求另行接线，独立 identity.session 不自动生成这些入口。
 
@@ -25,7 +25,7 @@
 
 ## 接入时替换内容
 
-中性化后的完整[离线商品参考](../compositions/purchase-checkout/source-reference/index.html)随模板分发，无需访问来源项目；参考内的业务结果仅属于内存 Mock。
+旧版离线商品视觉示例已退役，不再分发或作为设计输入。当前视觉仅以根 DESIGN.md 及各模块的现行设计/接线合同为准；source-map 中原路径与摘要仅用于来源追溯，不恢复旧布局。
 
 - 品牌名称、描述、Logo 沿用当前 `.harness/project.json` 派生值，不复制来源品牌。
 - 主界面正文始终由 `homePageSource` 提供；不内置来源“暂无工具”、统计或测试菜单。

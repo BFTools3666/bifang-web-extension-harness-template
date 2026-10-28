@@ -111,6 +111,7 @@ export async function renderUpgradeCandidate(
       if (context.workspace && prefix && relative === "pnpm-workspace.yaml") continue
       if (
         rootScope &&
+        relative !== "DESIGN.md" &&
         !relative.startsWith(".agents/skills/") &&
         !relative.startsWith("docs/") &&
         !WORKSPACE_OWNERSHIP_RULES.some((rule) => rule.pattern === relative) &&

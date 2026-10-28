@@ -6,6 +6,7 @@
 | ------------------------------------------------------ | -------------------------------------------------------------------- |
 | [`AGENT_POLICY.md`](AGENT_POLICY.md)                   | 读取能力偏好、统一标题、持久计划、并行与候选门禁                     |
 | [`ENGINEERING_RULES.md`](ENGINEERING_RULES.md)         | 修改代码、测试、文档或配置                                           |
+| [`DESIGN.md`](../DESIGN.md)                            | 设计或实施 UI 前读取统一设计契约与样式分层                           |
 | [`MANTINE_UI_GUIDELINES.md`](MANTINE_UI_GUIDELINES.md) | 修改主题、页面、组件、布局、交互状态或 UI 无障碍                     |
 | [`TS_WEB_TEMPLATE.md`](TS_WEB_TEMPLATE.md)             | 初始化、维护 Web 或 Extension 模板与品牌派生                         |
 | [`WORKSPACE_TEMPLATE.md`](WORKSPACE_TEMPLATE.md)       | Workspace 拓扑、成员协作与领域 Skill 交接                            |

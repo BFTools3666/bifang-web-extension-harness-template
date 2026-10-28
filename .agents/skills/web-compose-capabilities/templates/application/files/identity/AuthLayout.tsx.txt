@@ -15,11 +15,11 @@ export function AuthLayout({ title, children }: { title: string; children: React
           <Stack className={classes.authAside} gap="lg">
             <Group>
               <Image src={BRAND.logoPath} alt="" w={48} h={48} />
-              <Text fw={700} size="xl">
+              <Text fw="var(--ui-font-weight-strong)" size="xl">
                 {t("projectName")}
               </Text>
             </Group>
-            <Text size="xl" fw={700}>
+            <Text size="xl" fw="var(--ui-font-weight-strong)">
               {t("identityIntroTitle")}
             </Text>
             <Text c="dimmed">{t("identityIntroDescription")}</Text>

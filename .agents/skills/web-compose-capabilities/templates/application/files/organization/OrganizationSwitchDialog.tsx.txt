@@ -111,6 +111,7 @@ export function OrganizationSwitchDialog({
         ) : (
           <ModuleState
             loading={query.isPending}
+        refreshing={query.isFetching && !query.isPending}
             error={query.error}
             empty={false}
             retry={() => {

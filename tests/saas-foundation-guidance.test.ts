@@ -31,6 +31,10 @@ test("SaaS 基础设计按宿主传播", async () => {
     })
     const document = documents.get("docs/MANTINE_UI_GUIDELINES.md")
     const engineering = documents.get("docs/ENGINEERING_RULES.md")
+    expect(document).toContain("[统一 UI 设计契约](../DESIGN.md) 是首要设计依据")
+    expect(document).toContain("四层基座")
+    expect(document).toContain("0.25/0.5/1/1.5/2rem")
+    expect(engineering).toContain("DESIGN.md")
     for (const text of [
       "所有表单中支持占位提示的可编辑字段都必须提供 placeholder",
       "占位文案进入既有 i18next",
@@ -43,6 +47,8 @@ test("SaaS 基础设计按宿主传播", async () => {
     for (const text of [styleMarker, "不得把多个语句", "可省略字段用可选属性表达", "双重断言"])
       expect(engineering).toContain(text)
     if (projectType === "web") {
+      expect(document).toContain("默认提供行多选与批量操作入口、列宽调整、排序、列显隐")
+      expect(document).not.toContain("选择、列显隐与列顺序只在真实产品需求出现时启用")
       for (const text of [
         marker,
         "未登录默认进入登录页",

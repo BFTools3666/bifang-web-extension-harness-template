@@ -2,7 +2,6 @@ import { Alert, Button, PasswordInput, Stack, TextInput } from "@mantine/core"
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 import { AuthLayout } from "./AuthLayout"
-import classes from "../application/application.module.css"
 import type { IdentityRuntime } from "./runtime"
 
 /** 固定登录页只消费基础会话，成功目的地由宿主路由接线提供。 */
@@ -61,7 +60,6 @@ export function LoginPage({ session, onSuccess, registrationLink }: LoginPagePro
           <TextInput
             label={t("identityAccount")}
             placeholder={t("identityAccountPlaceholder")}
-            classNames={{ input: classes.authPlaceholder }}
             name="account"
             autoComplete="username"
             value={account}
@@ -71,7 +69,6 @@ export function LoginPage({ session, onSuccess, registrationLink }: LoginPagePro
           <PasswordInput
             label={t("identityPassword")}
             placeholder={t("identityPasswordPlaceholder")}
-            classNames={{ innerInput: classes.authPlaceholder }}
             name="password"
             autoComplete="current-password"
             value={password}

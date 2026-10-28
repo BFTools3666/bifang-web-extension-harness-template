@@ -166,7 +166,10 @@ describe("terminal dual-browser Extension initialization", () => {
       'key: BRAND.id + ":color-scheme:v1"'
     )
     expect(providers).toContain("luminanceThreshold: BRAND_TEXT_LUMINANCE_THRESHOLD")
-    expect(providers).toContain("fontFamily")
+    expect(providers).toContain("...designTokens")
+    expect(await readFile(path.join(root, "src/theme/designTokens.ts"), "utf8")).toContain(
+      "fontFamily"
+    )
     expect(providers).not.toContain("JotaiProvider")
     expect(extensionColorSchemeControl).toContain('value: "dark"')
     expect(extensionColorSchemeControl).toContain("<NativeSelect")
@@ -260,8 +263,8 @@ describe("terminal dual-browser Extension initialization", () => {
       .filter((entry) => entry.isDirectory())
       .map((entry) => entry.name)
       .sort()
-    expect(extensionSkills).toHaveLength(48)
-    expect(extensionSkills).toContain("design-taste-frontend")
+    expect(extensionSkills).toHaveLength(47)
+    expect(extensionSkills).not.toContain("design-taste-frontend")
     expect(extensionSkills).toContain("web-review-api-contract")
     expect(extensionSkills).toContain("web-review-module-boundaries")
     expect(extensionSkills).toContain("web-implement-access-control")

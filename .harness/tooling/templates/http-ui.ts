@@ -47,7 +47,7 @@ export function HttpFeedback() {
   const presentation = useAtomValue(httpFeedbackAtom)
   if (presentation === null) return null
   return (
-    <Alert role="alert" title={t(presentation.titleKey)} withCloseButton closeButtonLabel={t("httpDismiss")} onClose={() => clearHttpFeedback()}>
+    <Alert color={presentation.kind === "cancelled" ? "blue" : presentation.kind === "authentication" || presentation.kind === "forbidden" ? "orange" : "red"} role="alert" title={t(presentation.titleKey)} withCloseButton closeButtonLabel={t("httpDismiss")} onClose={() => clearHttpFeedback()}>
       {t(presentation.descriptionKey)}
     </Alert>
   )

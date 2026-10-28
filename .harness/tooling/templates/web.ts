@@ -215,10 +215,10 @@ export const queryClient = new QueryClient({
       `import { createTheme } from "@mantine/core"
 import { BRAND } from "../brand"
 import { BRAND_TEXT_LUMINANCE_THRESHOLD, createBrandScale } from "../theme/brandScale"
-
-const SYSTEM_SANS = "ui-sans-serif, system-ui, -apple-system, sans-serif"
+import { designTokens } from "../theme/designTokens"
 
 export const theme = createTheme({
+  ...designTokens,
   colors: { brand: createBrandScale(BRAND.primaryColor) },
   primaryColor: "brand",
   primaryShade: { light: 6, dark: 4 },
@@ -226,15 +226,6 @@ export const theme = createTheme({
   luminanceThreshold: BRAND_TEXT_LUMINANCE_THRESHOLD,
   focusRing: "auto",
   respectReducedMotion: true,
-  black: "#16181d",
-  defaultRadius: "md",
-  shadows: {
-    xs: "0 1px 2px rgba(22, 24, 29, 0.06)",
-    sm: "0 2px 8px rgba(22, 24, 29, 0.08)",
-    md: "0 8px 24px rgba(22, 24, 29, 0.1)"
-  },
-  fontFamily: SYSTEM_SANS,
-  headings: { fontFamily: SYSTEM_SANS }
 })
 `
     ],
@@ -247,6 +238,7 @@ import { colorSchemeManager } from "../data/storage/colorScheme"
 import { queryClient } from "./queryClient"
 import { HttpFeedback } from "../data/api/client/HttpErrorView"
 import { theme } from "./theme"
+import { designVariables } from "../theme/designTokens"
 
 
 /** 说明 AppProvidersProps 的稳定结构与职责边界。 */
@@ -257,7 +249,7 @@ interface AppProvidersProps {
 /** 说明 AppProviders 的稳定结构与职责边界。 */
 export function AppProviders({ children }: AppProvidersProps) {
   return (
-    <MantineProvider theme={theme} defaultColorScheme="auto" colorSchemeManager={colorSchemeManager}>
+    <MantineProvider theme={theme} cssVariablesResolver={designVariables} defaultColorScheme="auto" colorSchemeManager={colorSchemeManager}>
       <QueryClientProvider client={queryClient}><HttpFeedback />{children}</QueryClientProvider>
     </MantineProvider>
   )

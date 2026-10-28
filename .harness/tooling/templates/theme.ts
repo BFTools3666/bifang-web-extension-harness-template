@@ -2,6 +2,82 @@
 export function themeFiles(): Map<string, string> {
   return new Map<string, string>([
     [
+      "src/theme/designTokens.ts",
+      `import type { CSSVariablesResolver, MantineThemeOverride } from "@mantine/core"
+import classes from "./design.module.css"
+
+const FONT_FAMILY = "ui-sans-serif, system-ui, -apple-system, sans-serif"
+const CONTROL_SIZE = "md"
+const MOTION = { duration: 200, timingFunction: "ease-in-out" }
+
+/** 当前成员唯一基础视觉令牌；品牌色仍由本成员身份派生。 */
+export const designTokens: MantineThemeOverride = {
+  black: "#1d2129",
+  fontFamily: FONT_FAMILY,
+  fontSizes: { xs: "0.75rem", sm: "0.75rem", md: "0.875rem", lg: "1rem", xl: "1.25rem" },
+  lineHeights: { xs: "1.5", sm: "1.5", md: "1.5", lg: "1.5", xl: "1.5" },
+  headings: { fontFamily: FONT_FAMILY, fontWeight: "600" },
+  defaultRadius: "md",
+  radius: { xs: "0.125rem", sm: "0.125rem", md: "0.25rem", lg: "0.5rem", xl: "0.75rem" },
+  spacing: { xs: "0.25rem", sm: "0.5rem", md: "1rem", lg: "1.5rem", xl: "2rem" },
+  shadows: {
+    xs: "0 2px 8px rgba(0, 0, 0, 0.08)",
+    sm: "0 4px 16px rgba(0, 0, 0, 0.12)",
+    md: "0 8px 24px rgba(0, 0, 0, 0.16)"
+  },
+  components: {
+    Button: { defaultProps: { size: CONTROL_SIZE } },
+    Input: { defaultProps: { size: CONTROL_SIZE }, classNames: { input: classes.placeholder } },
+    InputWrapper: { defaultProps: { size: CONTROL_SIZE } },
+    TextInput: { defaultProps: { size: CONTROL_SIZE } },
+    PasswordInput: { defaultProps: { size: CONTROL_SIZE }, classNames: { innerInput: classes.placeholder } },
+    Textarea: { defaultProps: { size: CONTROL_SIZE } },
+    NumberInput: { defaultProps: { size: CONTROL_SIZE } },
+    Select: { defaultProps: { size: CONTROL_SIZE } },
+    NativeSelect: { defaultProps: { size: CONTROL_SIZE } },
+    MultiSelect: { defaultProps: { size: CONTROL_SIZE } },
+    FileInput: { defaultProps: { size: CONTROL_SIZE } },
+    Checkbox: { defaultProps: { size: CONTROL_SIZE } },
+    Radio: { defaultProps: { size: CONTROL_SIZE } },
+    Switch: { defaultProps: { size: CONTROL_SIZE } },
+    Slider: { defaultProps: { size: CONTROL_SIZE } },
+    ActionIcon: { defaultProps: { size: CONTROL_SIZE } },
+    SegmentedControl: { defaultProps: { size: CONTROL_SIZE } },
+    Modal: { defaultProps: { centered: true, transitionProps: MOTION } },
+    Drawer: { defaultProps: { transitionProps: MOTION } },
+    Popover: { defaultProps: { transitionProps: MOTION } },
+    Menu: { defaultProps: { transitionProps: MOTION } },
+    Tooltip: { defaultProps: { transitionProps: MOTION } },
+    Paper: { defaultProps: { radius: "lg" } },
+    Card: { defaultProps: { radius: "lg" } }
+  }
+}
+
+/** 共享布局、字重、动效和占位文本只从本成员根 Provider 暴露。 */
+export const designVariables: CSSVariablesResolver = () => ({
+  variables: {
+    "--ui-header-height": "4.5rem",
+    "--ui-focus-width": "2px",
+    "--ui-font-weight-medium": "500",
+    "--ui-font-weight-strong": "600",
+    "--ui-skip-layer": "500",
+    "--ui-transition-duration": String(MOTION.duration) + "ms",
+    "--ui-transition-timing": MOTION.timingFunction
+  },
+  light: { "--ui-placeholder-color": "var(--mantine-color-gray-7)" },
+  dark: { "--ui-placeholder-color": "var(--mantine-color-dark-1)" }
+})
+`
+    ],
+    [
+      "src/theme/design.module.css",
+      `.placeholder::placeholder {
+  color: var(--ui-placeholder-color);
+  opacity: 1;
+}
+`
+    ],
+    [
       "src/theme/ColorSchemeControl.test.tsx",
       `// @vitest-environment jsdom
 import "../i18n"
@@ -144,7 +220,7 @@ export function ColorSchemeControl({ compact = false }: ColorSchemeControlProps)
     )
   }
 
-  return <SegmentedControl aria-label={t("colorSchemeLabel")} size="xs" value={colorScheme} onChange={selectColorScheme} data={data} />
+  return <SegmentedControl aria-label={t("colorSchemeLabel")} value={colorScheme} onChange={selectColorScheme} data={data} />
 }
 `
     ]

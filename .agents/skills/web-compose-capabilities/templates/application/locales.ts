@@ -54,6 +54,7 @@ export const applicationLocales = {
     applicationExpand: "Expand sidebar",
     applicationCollapse: "Collapse sidebar",
     applicationLoading: "Loading…",
+    applicationRefreshing: "Refreshing…",
     applicationError:
       "Unable to complete this operation. Please check the result or retry reading.",
     applicationRetry: "Retry",
@@ -178,6 +179,7 @@ export const applicationLocales = {
     applicationExpand: "展开侧栏",
     applicationCollapse: "收起侧栏",
     applicationLoading: "正在加载…",
+    applicationRefreshing: "正在刷新…",
     applicationError: "操作暂时无法完成，请先核对结果或重试读取。",
     applicationRetry: "重试",
     applicationEmpty: "暂无记录。",

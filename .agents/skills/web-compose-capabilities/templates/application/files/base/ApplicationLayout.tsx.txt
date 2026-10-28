@@ -1,4 +1,14 @@
-import { ActionIcon, Anchor, AppShell, Burger, Group, Image, Stack, Text } from "@mantine/core"
+import {
+  ActionIcon,
+  Anchor,
+  AppShell,
+  Burger,
+  Group,
+  Image,
+  Stack,
+  Text,
+  useMantineTheme
+} from "@mantine/core"
 import { useElementSize, useMediaQuery } from "@mantine/hooks"
 import { Link, Outlet, useLocation } from "@tanstack/react-router"
 import { useEffect, useState, type ReactNode } from "react"
@@ -22,7 +32,8 @@ export function ApplicationLayout({ account, allow, content }: ApplicationLayout
   const { t } = useTranslation()
   const { pathname, href } = useLocation()
   const { ref: headerRef, height: headerHeight } = useElementSize()
-  const desktop = useMediaQuery("(min-width: 48em)")
+  const theme = useMantineTheme()
+  const desktop = useMediaQuery("(min-width: " + theme.breakpoints.sm + ")")
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpened, setMobileOpened] = useState(false)
   const useSidebar = true
@@ -74,7 +85,7 @@ export function ApplicationLayout({ account, allow, content }: ApplicationLayout
     <AppShell
       className={classes.shell}
       layout="alt"
-      header={{ height: useSidebar ? 72 : headerHeight || 112 }}
+      header={{ height: useSidebar ? "var(--ui-header-height)" : headerHeight || 112 }}
       navbar={
         useSidebar
           ? { width: compact ? 76 : 248, breakpoint: "sm", collapsed: { mobile: !mobileOpened } }
@@ -88,7 +99,7 @@ export function ApplicationLayout({ account, allow, content }: ApplicationLayout
       <AppShell.Header>
         <div ref={headerRef} className={classes.header}>
           <Stack px="lg" gap="xs">
-            <Group justify="space-between" wrap="nowrap" mih={72}>
+            <Group justify="space-between" wrap="nowrap" mih="var(--ui-header-height)">
               <Group>
                 {useSidebar && (
                   <Burger
@@ -99,7 +110,7 @@ export function ApplicationLayout({ account, allow, content }: ApplicationLayout
                     onClick={() => setMobileOpened((value) => !value)}
                   />
                 )}
-                <Text fw={600} visibleFrom="sm">
+                <Text fw="var(--ui-font-weight-strong)" visibleFrom="sm">
                   {t(current?.title ?? "projectName")}
                 </Text>
               </Group>
@@ -140,7 +151,7 @@ export function ApplicationLayout({ account, allow, content }: ApplicationLayout
             <Image src={BRAND.logoPath} w={36} h={36} alt="" />
             {!compact && (
               <div>
-                <Text fw={700}>{t("projectName")}</Text>
+                <Text fw="var(--ui-font-weight-strong)">{t("projectName")}</Text>
                 <Text size="xs" c="dimmed">
                   {t("applicationSubtitle")}
                 </Text>

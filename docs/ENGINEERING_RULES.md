@@ -27,7 +27,7 @@
 - `src/routes/` 只放生产路由模块，不能使用 `.test.tsx`、`.spec.tsx` 等测试后缀命名；业务 `test` URL 段使用 `app/test.tsx` 等嵌套文件，实际测试留在 feature。工程基础不生成默认首页；布局、叶页面和插槽遵循 [`MANTINE_UI_GUIDELINES.md`](MANTINE_UI_GUIDELINES.md) §8.5。
 - 路由加载、页面数据和错误状态应有清晰职责。不要把服务器缓存复制进 Jotai，也不要为局部输入状态建立全局 atom。真实多来源事件需要时可按 [`DATA_ACCESS.md`](DATA_ACCESS.md) 引入 RxJS，但事件流不成为第二状态仓库。
 - 初始化生成 `src/pagination/`、`src/data/api/client/` 与语言偏好基础，但不把分页控件或网络请求强塞进静态 Landing/404。真实集合页复用统一 page/pageSize 状态，真实登录路由存在后才装配 401 导航 adapter。
-- Web 的列表页、数据表格、后台列表与搜索结果同时调用 `$web-implement-list-view`，但根据真实信息结构选择 Table、卡片或搜索形态，不强制 Table、选择、列偏好或 DnD。初始化不生成业务列表、假 endpoint 或可选列表依赖。
+- Web 的列表页、数据表格、后台列表与搜索结果同时调用 `$web-implement-list-view`，按真实信息结构选择 Table、卡片或搜索形态；二维业务表格的默认能力以 `DESIGN.md` 为准，不适用项记录依据，列顺序拖拽仍按需。初始化不生成业务列表、假 endpoint 或可选列表依赖。
 - 根 `index.html` 只承载文档元数据、挂载点与当前项目资源引用；业务内容留在 React 页面。
 - 初始化必须同步 `public/logo.png`、`public/favicon.png`、根 `index.html` 元数据；不得生成 Extension 的 Popup、Options、manifest 或图标路径。
 
@@ -106,7 +106,7 @@
 
 ## 5. UI、可访问性与国际化
 
-- Mantine UI 的令牌、样式优先级、排版、布局、组件语义、状态、响应式、Web/Extension 差异和交付清单以 [`MANTINE_UI_GUIDELINES.md`](MANTINE_UI_GUIDELINES.md) 为唯一详细事实；本节只保留跨工程硬边界。
+- UI 设计方向与四层样式基座归 [`DESIGN.md`](../DESIGN.md)；Mantine UI 的令牌、样式优先级、排版、布局、组件语义、状态、响应式、Web/Extension 差异和交付清单以 [`MANTINE_UI_GUIDELINES.md`](MANTINE_UI_GUIDELINES.md) 为唯一详细实现事实；本节只保留跨工程硬边界。
 - 使用语义化 HTML、可见焦点、键盘可操作控件和可理解的标签；颜色不是唯一状态提示。
 - Popup 等紧凑界面也必须保证触控目标、文本缩放和错误反馈可用。Options 页面应适配常见桌面窗口宽度。
 - 用户可见文案通过 i18next 翻译键提供；项目名称、描述及其 `identityI18n` 翻译从 `.harness/project.json` 派生为 UI 的 `projectName` / `projectDescription` 与 Extension 浏览器消息，不复制为可独立漂移的翻译常量。
@@ -166,6 +166,7 @@ Workspace 根 `pnpm release` / `release:<member>` 在成员门禁通过后，将
 | `Version.md`                    | Harness 当前时间版本与发布状态                          |
 | `docs/AGENT_POLICY.md`          | 能力偏好、用户可见 Task 开关/标题、并行与候选浏览器偏好 |
 | `docs/ENGINEERING_RULES.md`     | 文件、TypeScript、注释、文档、测试与例外规则            |
+| `DESIGN.md`                     | 统一 UI 设计方向、语义令牌原则与四层样式基座            |
 | `docs/MANTINE_UI_GUIDELINES.md` | Mantine UI 令牌、布局、组件、状态与无障碍规范           |
 | `docs/TS_WEB_TEMPLATE.md`       | 单类型初始化与两种技术基线                              |
 | `docs/RUNTIME_CONFIGURATION.md` | 三环境、公开变量、BaseURL 与构建 profile                |

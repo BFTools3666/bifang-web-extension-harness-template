@@ -23,6 +23,7 @@ test("keeps an independent upgrade ownership baseline", () => {
 
 /** 验证运行时规则与清单同步弱化时，源独立门禁仍拒绝源专用和通用 Skill 路径。 */
 test.each([
+  "DESIGN.md",
   "scripts/instantiate.ts",
   ".agents/skills/web-test-final-artifact-e2e/**",
   ".agents/skills/web-implement-write-recovery/**"

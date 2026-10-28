@@ -1,4 +1,5 @@
 import { describe, test } from "vitest"
+import { rm } from "node:fs/promises"
 import {
   TEST_BASE_URLS,
   expect,
@@ -20,6 +21,16 @@ import {
 
 /** 验证 terminal runtime and release governance 的完整回归场景。 */
 describe("terminal runtime and release governance", () => {
+  /** 删除已分发的设计契约后，两类前端必须拒绝通过工程校验。 */
+  test.each(["web", "extension"] as const)(
+    "rejects missing DESIGN.md in a generated %s project",
+    async (projectType) => {
+      const root = await seedTemplateRoot()
+      await initializeProject(options(root, projectType))
+      await rm(path.join(root, "DESIGN.md"))
+      await expect(validateProject(root)).rejects.toThrow(/Missing DESIGN\.md/u)
+    }
+  )
   /** 验证 rejects a non-Release artifact script in a generated %s project 场景。 */
   test.each(["web", "extension"] as const)(
     "rejects a non-Release artifact script in a generated %s project",

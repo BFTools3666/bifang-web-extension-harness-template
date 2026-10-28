@@ -18,6 +18,7 @@ export function OrdersPage({ api, scope }: { api: OrdersReadApi; scope: number }
       <Title order={1}>{t("ordersTitle")}</Title>
       <ModuleState
         loading={query.isPending}
+        refreshing={query.isFetching && !query.isPending}
         error={query.error}
         empty={query.data?.length === 0}
         retry={() => {

@@ -105,7 +105,7 @@ function engineeringRules(config: ProjectConfig, canonicalEngineeringRules: stri
 - \`src/data/\` 统一 API 与 Cookie、LocalStorage、SessionStorage、Memory、IndexedDB；\`data/api/\` 承载服务边界，\`data/storage/\` 集中存储访问。GraphQL 强制负责远端列表查询和其他带业务查询条件的 GET 类读取；其余请求全部使用 RESTful；Dexie 仅用于真实 IndexedDB 消费者，其他存储保持原生语义，详细分工见 \`docs/DATA_ACCESS.md\` §1.1–1.3。
 - Ky 为默认 HTTP 传输；OpenAPI、GraphQL、SSE 与可选 RxJS 事件流依赖只随真实消费者加入，并复用既有请求安全与状态所有权契约。
 - RxJS 只在多来源或复杂时序需求出现时编排瞬时事件，不成为 Query/Jotai 的第二状态仓库、持久事件日志或全局可写 Subject。
-- Mantine UI 的 theme、令牌、布局、组件语义、交互状态、响应式与无障碍遵循 \`docs/MANTINE_UI_GUIDELINES.md\`；不散落品牌常量、不建立第二套基础组件系统。
+- UI 设计方向与四层样式基座归 \`DESIGN.md\`；Mantine UI 的 theme、令牌、布局、组件语义、交互状态、响应式与无障碍遵循 \`docs/MANTINE_UI_GUIDELINES.md\`；不散落品牌常量、不建立第二套基础组件系统。
 - 用户可见文案进入 i18next，至少保留英文回退和项目声明的实际语言资源。
 - 三份公开运行配置与 BaseURL 只通过 \`src/config/environment.ts\` 的 \`APP_CONFIG\` 进入业务代码，遵循 \`docs/RUNTIME_CONFIGURATION.md\`。
 - 产品日志只通过 \`src/observability/logger.ts\`，边界覆盖、敏感字段和 Release 裁剪遵循 \`docs/LOGGING.md\`。
@@ -405,7 +405,7 @@ function mantineUiGuidelines(config: ProjectConfig, canonical: string): string {
 
   return `# Mantine UI 设计规范
 
-本文档是 **${config.name}** 当前 \`${config.projectType}\` 单包的 Mantine UI 设计事实。项目身份与品牌色仍以 \`.harness/project.json\` 为唯一来源；工程和测试通则仍以 [\`ENGINEERING_RULES.md\`](ENGINEERING_RULES.md) 为准。
+本文档是 **${config.name}** 当前 \`${config.projectType}\` 单包的 Mantine UI 实现事实。[统一 UI 设计契约](../DESIGN.md) 是首要设计依据，拥有设计方向与四层样式基座；本文拥有具体落地细则，冲突时以设计契约为准。项目身份与品牌色仍以 \`.harness/project.json\` 为唯一来源；工程和测试通则仍以 [\`ENGINEERING_RULES.md\`](ENGINEERING_RULES.md) 为准。
 
 当前项目声明 Mantine \`9.6.3\`，并以根级 \`MantineProvider\`、\`createTheme\` 和 Mantine CSS variables 为实现基线。升级 Mantine 时必须重新核对主题、Styles API 和响应式机制；未安装的 \`@mantine/form\`、\`@mantine/notifications\` 等扩展包不是现有能力。
 
@@ -427,6 +427,7 @@ function docsReadme(config: ProjectConfig): string {
 | ---------------------------------------------- | ------------------------------------ |
 | [\`AGENT_POLICY.md\`](AGENT_POLICY.md)           | 判断任务路径、持久计划、并行、冒烟与 E2E 偏好 |
 | [\`ENGINEERING_RULES.md\`](ENGINEERING_RULES.md) | 修改代码、测试、文档或配置           |
+| [\`DESIGN.md\`](../DESIGN.md) | 设计或实施 UI 前读取统一设计契约与样式分层 |
 | [\`MANTINE_UI_GUIDELINES.md\`](MANTINE_UI_GUIDELINES.md) | 修改主题、页面、组件、布局、交互状态或 UI 无障碍 |
 | [\`API.md\`](API.md) | 查阅可选基础 API 契约、数据模型与接入边界 |
 | [\`DATA_ACCESS.md\`](DATA_ACCESS.md)             | 分页、HTTP/认证、数据访问、SSE 与 RxJS |

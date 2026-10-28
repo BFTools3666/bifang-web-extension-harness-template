@@ -19,6 +19,14 @@
     }
   ],
   "rules": [
+    {
+      "pattern": ".agents/skills/web-compose-capabilities/templates/compositions/purchase-checkout/**",
+      "mode": "tombstone"
+    },
+    {
+      "pattern": "DESIGN.md",
+      "mode": "merge-sections"
+    },
     { "pattern": ".harness/tooling/workspace-add.ts", "mode": "tombstone" },
     { "pattern": ".harness/tooling/workspace-frontend.ts", "mode": "tombstone" },
     { "pattern": "scripts/add-workspace-frontend.ts", "mode": "tombstone" },
@@ -245,7 +253,7 @@
     },
     {
       "pattern": ".harness/tooling/design-skill.ts",
-      "mode": "managed"
+      "mode": "tombstone"
     },
     {
       "pattern": ".harness/tooling/install-design-skill.ts",

@@ -69,6 +69,16 @@ export function workspaceDocuments(config: WorkspaceConfig): Map<string, string>
       `# ${config.name}\n\n${members}\n\n从此 Workspace 根运行 \`pnpm dev\` 启动选中成员；\`pnpm dev:web\`、\`pnpm dev:extension\`、\`pnpm dev:server\` 只在该类型唯一时生成，精确成员命令使用目录名。\`pnpm test\`、\`pnpm typecheck\`、\`pnpm lint\` 聚合适用成员；\`pnpm validate\` 校验工作区和成员。\`pnpm build -- --member <member-directory> --e2e=<enabled|disabled>\` 显式选择前端候选；Go build 为本地编译。发布打包从根运行 \`pnpm release\`，按需询问 Server 目标平台和本次 E2E；非交互示例：\`pnpm release -- ${config.members.some((member) => member.type === "server") ? "--platform=linux/amd64 " : ""}--e2e=disabled\`。自建服务首次未填正式 BaseURL 时，会从生产配置推导本机回环地址并要求确认，确认后仅补齐选中前端的空地址；非交互先查看建议，再传 \`--confirm-local-base-url=<实际建议地址>\`。已有地址保持不变。类型唯一时可用 \`pnpm release:web\`、\`release:extension\` 或 \`release:server\`。输出为根 \`release/web.zip\`（解压为本成员目录）、\`extension.zip\`（chrome/ 与 firefox/）和 \`server.zip\`（目标平台二进制与 config.yaml），追加前端输出 release/<member-directory>.zip，仅生成已选成员。详见 docs/WORKSPACE_TEMPLATE.md。\n\n${config.service.mode === "none" ? "服务来源：纯本地，不使用远端地址，不创建 Go 服务；三环境保持空地址。" : `服务来源：${config.service.mode}。开发 BaseURL：${config.service.developmentBaseUrl}。已有服务需核对真实契约；自建服务使用 Gin、SQLite 和统一 HTTP 协议。`}同根可追加多个 Web / Extension，必须由用户提供新名字；从源 Harness 使用 instantiate --workspace，详见 docs/WORKSPACE_TEMPLATE.md。成员命令优先用精确目录，类型简写仅在唯一时有效；追加成员输出 release/<member-directory>.zip。首次只生成工程基础，需求所选领域由对应 Skill 完成前端、后端与联调；不使用产品 Mock。\n\n根 package.json 包装成员命令；Go 依赖声明在服务端 go.mod/go.sum。仅根拥有 pnpm lock；Git 默认不启用，需要时由用户明确要求并仅在根管理。\n`
     ]
   ])
+  documents.set(
+    "docs/README.md",
+    documents.get("docs/README.md") +
+      "\n前端设计以 [统一 UI 设计契约](../DESIGN.md) 为主；设计和实施前读取对应成员的 DESIGN.md 与 Mantine 规范，主题与产品定制各归成员。\n"
+  )
+  documents.set(
+    "AGENTS.md",
+    documents.get("AGENTS.md") +
+      "\n前端 UI 以 DESIGN.md 为首要设计依据；进入设计或实施时读取实际成员的 DESIGN.md 与 docs/MANTINE_UI_GUIDELINES.md，旧风格建议冲突时以该契约为准。\n"
+  )
   if (config.service.mode === "create") {
     const guidance =
       "\n自建 Server 发布配置使用 $go-configure-release：在生产监听地址推导和打包前解析实际配置，首次按段引导并记录，后续发布直接复用，仅用户要求变更时重开对应向导。生产配置值归服务成员 configs/config-prod.yaml，进度归根 .harness/server-release/<member-directory>.json，记录不含配置值或秘密；恢复与漂移按该 Skill 处理。根 CLI 不自动代答该 Agent 向导。\n"

@@ -40,7 +40,7 @@ export function TeamLeave({
   return (
     <Stack>
       {mutation.status === "unknown" && (
-        <Alert role="alert">
+        <Alert color="orange" role="alert">
           {t("teamUnknown")}
           <Button
             onClick={() => {

@@ -31,7 +31,7 @@ description: 在 Web Harness 或其单 package 纯 TypeScript React Web、Plasmo
    - TanStack Query 统一管理 REST/GraphQL 有限读取的请求前缓存与远端/异步服务状态；feature 共享 Query options 和当前上下文 QueryClient，缓存已校验领域数据，Ky/client 不建结果缓存。新鲜度与入口按 `docs/DATA_ACCESS.md` §2.7；Jotai 只管理确需跨组件共享的客户端交互状态，不镜像 Query 数据。
    - API 与 Cookie、LocalStorage、SessionStorage、Memory、IndexedDB 统一在 `src/data/`；存储访问经 `data/storage/`，GraphQL 仅列表查询与其他带业务查询条件的 GET 类读取、其余请求全部 RESTful，以及 Dexie 的 IndexedDB 边界按 `docs/DATA_ACCESS.md` §1.1–1.3 执行。
    - 业务判断放在最靠近真实功能且可单测的模块，不塞进 JSX、通用 `utils` 或无领域含义的 manager。
-3. 主题、页面、Popup、Options、布局、组件、交互状态、响应式或 UI 无障碍变化先读取 `docs/MANTINE_UI_GUIDELINES.md`，复用 Mantine theme、语义令牌和当前宿主模式，不散落品牌常量、不建立第二套基础组件系统。`projectType=web` 的列表页、数据表格、后台列表或搜索结果还必须调用 `$web-implement-list-view`；Extension Popup/Options 不调用该 Skill。
+3. 主题、页面、Popup、Options、布局、组件、交互状态、响应式或 UI 无障碍变化先读取当前前端成员的 `DESIGN.md` 与 `docs/MANTINE_UI_GUIDELINES.md`，复用 Mantine theme、语义令牌和四层样式基座及当前宿主模式，不散落品牌常量、不建立第二套基础组件系统，不机械包装全部控件。`projectType=web` 的列表页、数据表格、后台列表或搜索结果还必须调用 `$web-implement-list-view`；Extension Popup/Options 不调用该 Skill。
 4. Web 使用 Vite/React 的既有路由与页面约定，不替换 Mantine、TanStack Router/Query、Jotai 或 i18next 技术基线。路由布局、正文插槽、稳定 shell 与类型化 Link 组合按 UI 规范；路由目录只放生产路由，不使用测试后缀命名业务页。源码可读性与类型化组合按工程规则，不以断言或压缩格式规避合同。
 5. Extension 保持同一 Plasmo 单包的 Chrome MV3 / Firefox MV2 合同。已初始化下游的变更触及浏览器 API、消息、Storage、后台、权限、CSP 或资源时调用 `$web-review-extension-compatibility`；调用方负责修复与相关双目标测试，源模板维护按工程事实源核对兼容。最终 manifest 由 Plasmo 动态派生，共享 override 不固定 manifest_version。新增或扩大权限必须取得明确批准，并经既有候选链执行权限、安全及两个真实浏览器专项门禁。
 6. 面向用户的新文案通过既有 `i18next`/`react-i18next` 资源，不引入第二套 i18n 机制。按 UI 规范“表单”和“无障碍、国际化与内容”逐项检查业务 placeholder 与页面文案必要性，模板装配同样适用；交付时核对中英文占位提示、无多余说明，以及必要错误/恢复反馈。

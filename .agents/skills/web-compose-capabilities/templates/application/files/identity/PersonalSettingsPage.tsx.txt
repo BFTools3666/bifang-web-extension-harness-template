@@ -167,7 +167,10 @@ function PersonalSettingsForm({
     <Stack maw={embedded ? undefined : 480}>
       {!embedded && <Title order={1}>{t("personalSettings")}</Title>}
       {status && (
-        <Alert role="status">
+        <Alert
+          role={status === "personalSaved" ? "status" : "alert"}
+          color={unknown ? "orange" : status === "personalSaved" ? "green" : "red"}
+        >
           {t(status)}
           {unknown && (
             <Button

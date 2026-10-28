@@ -21,7 +21,6 @@ import {
 import { validateToolingContract } from "./harness-validation/tooling.ts"
 import { validateHarnessVersion } from "./harness-validation/version.ts"
 import { validateUpgradeOwnership } from "./harness-validation/upgrade-ownership.ts"
-import { loadDesignSkillBundle } from "../.harness/tooling/install-design-skill.ts"
 import { isMainModule } from "../.harness/tooling/files.ts"
 
 /** 执行完整源 Harness 验证并返回稳定统计。 */
@@ -33,11 +32,6 @@ export async function validateHarness(rootInput: string): Promise<HarnessValidat
   await validateNodeTooling(root, files, errors)
   const markdownFiles = governedMarkdownFiles(files)
   const skills = await validateSkills(root, errors)
-  try {
-    await loadDesignSkillBundle(root)
-  } catch (error) {
-    errors.push(error instanceof Error ? error.message : String(error))
-  }
   try {
     readCapabilityCatalog(path.join(root, ".agents/skills/web-compose-capabilities"))
   } catch (error) {

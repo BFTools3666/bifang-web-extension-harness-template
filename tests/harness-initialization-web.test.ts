@@ -227,7 +227,10 @@ describe("terminal Web initialization", () => {
     expect(providers).not.toContain("JotaiProvider")
     expect(theme).toContain("createBrandScale(BRAND.primaryColor)")
     expect(theme).toContain("luminanceThreshold: BRAND_TEXT_LUMINANCE_THRESHOLD")
-    expect(theme).toContain("fontFamily")
+    expect(theme).toContain("...designTokens")
+    expect(await readFile(path.join(root, "src/theme/designTokens.ts"), "utf8")).toContain(
+      "fontFamily"
+    )
     expect(brandScale).toContain("MantineColorsTuple")
     expect(brandScale).toContain("BRAND_TEXT_LUMINANCE_THRESHOLD = 0.179")
     expect(colorSchemeControl).toContain('value: "dark"')

@@ -41,17 +41,17 @@ export function PurchasePanel({
     >
       <SimpleGrid cols={{ base: 1, sm: 2 }}>
         <Stack>
-          <Text fw={600}>{product.name}</Text>
+          <Text fw="var(--ui-font-weight-strong)">{product.name}</Text>
           <Text c="dimmed">{product.description}</Text>
         </Stack>
         <Paper withBorder p="md">
           <Stack>
-            <Text fw={600}>{t("commerceSummary")}</Text>
+            <Text fw="var(--ui-font-weight-strong)">{t("commerceSummary")}</Text>
             <Text>{formatPrice(amount, i18n.language)}</Text>
             {state.phase === "paid" ? (
               <Text role="status">{t("commercePaid")}</Text>
             ) : state.phase === "unknown" ? (
-              <Alert role="alert">
+              <Alert color="orange" role="alert">
                 <Stack>
                   <Text>{t("commerceUnknown")}</Text>
                   <Button

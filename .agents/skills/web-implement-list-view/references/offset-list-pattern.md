@@ -39,7 +39,7 @@ query key 使用稳定 listId、非 PII scope、规范化 filters、sort、pageS
 
 ## 6. 条件列偏好
 
-只有产品真实需要列显隐/排序时才启用。localStorage key 使用 app namespace + listId + 非 PII preference scope，schemaVersion 只在 payload。读取时验证、显式迁移、清理登记的旧 key、丢弃未知/重复 id、追加新列并恢复必显列；损坏或迁移失败时回退默认。
+二维业务表格默认列显隐偏好与排序，列宽支持调整且按配置选择保存；不适用项按 DESIGN.md 记录依据，列顺序调整仍按需。排序运行时归 Router 与真实查询，不混入列偏好。localStorage key 使用 app namespace + listId + 非 PII preference scope，schemaVersion 只在 payload。读取时验证、显式迁移、清理登记的旧 key、丢弃未知/重复 id、追加新列并恢复必显列；损坏或迁移失败时回退默认。
 
 拖拽和移动按钮复用同一纯更新逻辑。pointer 与 keyboard 路径都有命名手柄、位置播报和可操作 fallback；客户端列偏好不改变后端字段、权限或导出契约。
 

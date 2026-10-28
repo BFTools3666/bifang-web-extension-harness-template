@@ -211,7 +211,7 @@ describe("terminal identity, skills and UI governance", () => {
         "knowledge/identity.md",
         "templates/identity/session.test.ts.txt",
         "templates/compositions/account-workspace/data/storage/authSessionStorage.ts.txt",
-        "templates/compositions/purchase-checkout/commerce-reference.js"
+        "templates/orders/design.md"
       ]) {
         const file = path.join(root, ".agents/skills/web-compose-capabilities", resource)
         const contents = await readFile(file, "utf8")

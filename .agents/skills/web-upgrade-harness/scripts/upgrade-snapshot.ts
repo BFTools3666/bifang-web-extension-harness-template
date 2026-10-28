@@ -193,15 +193,17 @@ export function validateOwnershipManifest(value: unknown): OwnershipManifest {
     // 保存 requiredRuleIndex 与 shadowingRule 变量供拒绝任何局部或宽泛的前置遮蔽。
     const requiredRuleIndex = candidate.rules.findIndex((rule) => rule.pattern === pattern)
     const shadowingRule = candidate.rules.slice(0, requiredRuleIndex).find((rule) => {
-      // 唯一例外是源明确退役的精确 Auth 模板，不能用任意规则遮蔽受管 Skill。
-      const retiredAuth =
+      // 仅允许明确退役的 Auth 文件或旧视觉目录，不能用任意规则遮蔽受管 Skill。
+      const retiredTemplate =
         pattern === ".agents/skills/web-compose-capabilities/**" &&
         rule.mode === "tombstone" &&
         MINIMUM_OWNERSHIP_RULES[rule.pattern] === "tombstone" &&
-        rule.pattern.startsWith(
-          ".agents/skills/web-compose-capabilities/templates/application/files/organization/"
-        )
-      return !retiredAuth && ownershipPatternsOverlap(rule.pattern, pattern)
+        (rule.pattern ===
+          ".agents/skills/web-compose-capabilities/templates/compositions/purchase-checkout/**" ||
+          rule.pattern.startsWith(
+            ".agents/skills/web-compose-capabilities/templates/application/files/organization/"
+          ))
+      return !retiredTemplate && ownershipPatternsOverlap(rule.pattern, pattern)
     })
     if (shadowingRule !== undefined) {
       throw new Error(

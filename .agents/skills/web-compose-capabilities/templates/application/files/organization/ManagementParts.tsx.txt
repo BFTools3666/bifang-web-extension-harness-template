@@ -17,7 +17,7 @@ export function ManagementFeedback({
   return (
     <Alert
       role={write.message === "teamUpdated" ? "status" : "alert"}
-      color={write.message === "teamUpdated" ? "green" : "red"}
+      color={write.message === "teamUpdated" ? "green" : write.recovery ? "orange" : "red"}
     >
       <Text>{t(write.message)}</Text>
       {(write.recovery || write.message === "orgConflict") && (

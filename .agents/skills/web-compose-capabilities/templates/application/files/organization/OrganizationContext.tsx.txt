@@ -67,7 +67,7 @@ export function OrganizationContext({
           aria-label={t("organizationContext", { name })}
           title={name}
           size="sm"
-          fw={600}
+          fw="var(--ui-font-weight-strong)"
         >
           {content}
         </Anchor>

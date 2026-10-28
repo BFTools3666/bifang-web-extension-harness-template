@@ -24,6 +24,11 @@ import {
 } from "./typescript-contracts.ts"
 
 const FORBIDDEN_TEMPLATE_PATHS = [
+  ".harness/vendor/design-taste-frontend",
+  ".harness/tooling/install-design-skill.ts",
+  ".harness/tooling/design-skill.ts",
+  ".agents/skills/design-taste-frontend",
+  ".agents/skills/web-compose-capabilities/templates/compositions/purchase-checkout",
   "apps",
   "packages",
   ".harness/project.json",
@@ -397,6 +402,9 @@ export async function validateToolingContract(root: string, errors: string[]): P
     ".harness/tooling/validate.ts"
   )
   const validateProject = findFunctionDeclaration(downstreamValidatorSourceFile, "validateProject")
+  if (validateProject === undefined || !requirePathsContains(validateProject, "DESIGN.md")) {
+    errors.push("Downstream validator is missing DESIGN.md")
+  }
   /** 保存按职责拆分后的共享构建脚本验证源。 */
   const helperSourceFile = parseTypeScriptSource(
     await readFile(path.join(root, ".harness/tooling/validate-helpers.ts"), "utf8"),

@@ -8,7 +8,7 @@ export function ForbiddenPage({ recovery }: { recovery?: ReactNode }) {
   return (
     <Stack>
       <Title order={1}>{t("permissionDenied")}</Title>
-      <Alert color="yellow">
+      <Alert color="orange">
         <Text>{t("permissionDeniedDescription")}</Text>
       </Alert>
       {recovery}

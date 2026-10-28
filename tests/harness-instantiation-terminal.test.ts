@@ -121,6 +121,9 @@ describe("terminal source projection", () => {
     )
 
     expect(await readdir(targetRoot)).not.toContain(".git")
+    expect(await readFile(path.join(targetRoot, "DESIGN.md"), "utf8")).toBe(
+      await readFile(path.join(repositoryRoot, "DESIGN.md"), "utf8")
+    )
     // 终端 tooling 由手写模板生成，任一相对具名导入缺少文件或导出都会在真实下游链接失败。
     expect(await missingTerminalToolingImports(targetRoot)).toEqual([])
     // 所有登记为源专用的回归都不能携带到缺少源 fixture 的终端项目。
@@ -142,12 +145,12 @@ describe("terminal source projection", () => {
     const skills = skillEntries
       .filter(/* 执行 当前声明 函数的处理逻辑。 */ (entry) => entry.isDirectory())
       .map(/* 执行 当前声明 函数的处理逻辑。 */ (entry) => entry.name)
-    expect(skills).toHaveLength(48)
+    expect(skills).toHaveLength(47)
+    expect(skills).not.toContain("design-taste-frontend")
     expect(skills).toContain("web-summarize-development-history")
     expect(skills.sort()).toEqual(
       [
         ...Object.keys(WORKSPACE_SKILL_CONTRACTS),
-        "design-taste-frontend",
         "web-review-api-contract",
         "web-review-module-boundaries",
         "web-implement-auth-session",
@@ -201,7 +204,7 @@ describe("terminal source projection", () => {
       "knowledge/audit.md",
       "templates/identity/session.ts.txt",
       "templates/compositions/account-workspace/data/api/auth/mockAuth.ts.txt",
-      "templates/compositions/purchase-checkout/commerce-reference.js"
+      "templates/orders/design.md"
     ]) {
       const relativePath = path.join(".agents/skills/web-compose-capabilities", file)
       expect(await readFile(path.join(targetRoot, relativePath), "utf8")).toBe(

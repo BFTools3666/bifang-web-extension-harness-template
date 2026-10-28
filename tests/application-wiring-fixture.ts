@@ -1,7 +1,8 @@
 import type { TestApplicationOptions as ApplicationOptions } from "./application-test-adapters.ts"
 import { execFile } from "node:child_process"
 import { promisify } from "node:util"
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
+import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises"
+import os from "node:os"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { inspectChineseComments } from "../.harness/tooling/comment-policy.ts"
@@ -100,7 +101,7 @@ function routeTreeFixture(wiring: ApplicationWiring): string {
   source += `} }\nexport const routeTree = rootRoute.addChildren([ApplicationRoute.addChildren([${children.join(",")}]),SettingsRoute${wiring.resolved.includes("identity.session") ? ",LoginRoute" : ""}${wiring.resolved.includes("identity.register") ? ",RegisterRoute" : ""}])\n`
   return source
 }
-/** 对实际生成资产执行编译与行为测试，临时工程仅存在于受忽略 cache。 */
+/** 在源外临时目录执行生成资产的编译与行为测试，依赖只复用现有安装。 */
 export async function runApplicationFixture(
   options: ApplicationOptions,
   testSource: string,
@@ -110,10 +111,18 @@ export async function runApplicationFixture(
   }
 ): Promise<string> {
   const repository = path.resolve(import.meta.dirname, "..")
-  const cache = path.join(repository, "node_modules/.cache")
-  await mkdir(cache, { recursive: true })
-  const root = await mkdtemp(path.join(cache, "application-wiring-"))
+  const root = await mkdtemp(path.join(os.tmpdir(), "harness-application-wiring-"))
   try {
+    await symlink(
+      path.join(repository, "node_modules"),
+      path.join(root, "node_modules"),
+      process.platform === "win32" ? "junction" : "dir"
+    )
+    await writeFile(path.join(root, "package.json"), '{"private":true,"type":"module"}\n')
+    await writeFile(
+      path.join(root, "test-setup.ts"),
+      await readFile(path.join(repository, "tests/setup.ts"), "utf8")
+    )
     const config = createProjectConfig({
       projectType: options.selection.host,
       name: "Wiring fixture",
@@ -199,7 +208,7 @@ export async function runApplicationFixture(
           test: {
             environment: "jsdom",
             include: ["src/application.test.tsx"],
-            setupFiles: [path.join(repository, "tests/setup.ts")],
+            setupFiles: ["test-setup.ts"],
             testTimeout: 15_000
           }
         })

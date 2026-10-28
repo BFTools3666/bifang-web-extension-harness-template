@@ -1,4 +1,4 @@
-import { readFile, rm, writeFile } from "node:fs/promises"
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises"
 import path from "node:path"
 import { describe, expect, test } from "vitest"
 import { validateHarness } from "../scripts/validate-harness.ts"
@@ -13,6 +13,17 @@ import { repositoryRoot, copyRepository, updateManifest } from "./harness-valida
 
 /** 验证 Harness template validator 的完整回归场景。 */
 describe("Harness template validator", () => {
+  /** 已清理的旧风格资源不能在后续维护中静默恢复为第二套设计入口。 */
+  test.each([
+    ".harness/vendor/design-taste-frontend/SKILL.md",
+    ".agents/skills/web-compose-capabilities/templates/compositions/purchase-checkout/commerce-reference.css"
+  ])("rejects restored legacy design %s", async (relative) => {
+    const root = await copyRepository()
+    const file = path.join(root, relative)
+    await mkdir(path.dirname(file), { recursive: true })
+    await writeFile(file, "retired visual source\n")
+    await expect(validateHarness(root)).rejects.toThrow(/Clean template must not contain/u)
+  })
   /** 验证 accepts the complete clean template contract 场景。 */
   test("accepts the complete clean template contract", /* 执行 当前声明 函数的处理逻辑。 */ async () => {
     const report = await validateHarness(repositoryRoot)
@@ -318,7 +329,7 @@ describe("Harness template validator", () => {
   })
 
   /** 验证源模板丢失完整基础契约或数据访问文档时失败关闭。 */
-  test.each(["docs/API.md", "docs/DATA_ACCESS.md"])(
+  test.each(["DESIGN.md", "docs/API.md", "docs/DATA_ACCESS.md"])(
     "rejects missing foundation documentation %s",
     async (relativePath) => {
       const targetRoot = await copyRepository()
@@ -329,6 +340,17 @@ describe("Harness template validator", () => {
       )
     }
   )
+
+  /** 设计契约仍在源中时，也不能删除下游必须继承契约的校验接线。 */
+  test("rejects removed downstream design contract validation", async () => {
+    const root = await copyRepository()
+    const validator = path.join(root, ".harness/tooling/validate.ts")
+    await writeFile(
+      validator,
+      (await readFile(validator, "utf8")).replace('      "DESIGN.md",\n', "")
+    )
+    await expect(validateHarness(root)).rejects.toThrow("Downstream validator is missing DESIGN.md")
+  })
 
   /** 验证 rejects a template missing the canonical Mantine UI guidelines 场景。 */
   test("rejects a template missing the canonical Mantine UI guidelines", /* 执行 当前声明 函数的处理逻辑。 */ async () => {

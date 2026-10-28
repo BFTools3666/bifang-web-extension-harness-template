@@ -21,7 +21,7 @@ export function IdentityBoundary({
   if (state.identity && ["authenticated", "checking"].includes(state.phase)) return children
   if (state.phase === "error")
     return (
-      <Alert role="alert">
+      <Alert color="red" role="alert">
         <Stack>
           <Text>{t("applicationError")}</Text>
           <Button

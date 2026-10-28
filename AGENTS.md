@@ -2,7 +2,7 @@
 
 ## 项目使命
 
-本文件是 Agent 首读入口，按“启动门禁 → 路由 → Skill → 闭环”执行；项目概览与使用说明见 [README.md](README.md)。本仓库是 Workspace Harness，按需生成 React Web、Plasmo Chrome MV3 / Firefox MV2 Extension 与 Go 服务成员；拓扑与协作见 [Workspace 规范](docs/WORKSPACE_TEMPLATE.md)。源模板只维护跨项目复用的规则、Skills、中性资产和交付工程，不实现具体产品。
+本文件是 Agent 首读入口，按启动门禁、路由、Skill 与闭环执行；概览见 [README.md](README.md)。本仓库是 Workspace Harness，按需生成前端与 Go 服务成员，拓扑见 [Workspace 规范](docs/WORKSPACE_TEMPLATE.md)。源仅维护复用规则、Skills、中性资产与交付工程，不实现具体产品。
 
 ## 启动门禁
 
@@ -20,7 +20,7 @@
 | 下游需求变更、设计改版与桌面原型              | 下游 `docs/product_spec/`；设计先预览待反馈，再读宿主 UI 规范与原型记录         | `$web-define-product` → `$web-design-prototype` → `$web-implement-change`；仅下游            |
 | 范围清楚的实现、问题修复或 i18n 整理          | `docs/ENGINEERING_RULES.md` 与直接命中的 UI、数据、配置或日志事实               | `$web-implement-change`、`$web-extract-i18n-strings`                                         |
 | React Web 列表、数据表格或搜索结果            | `docs/MANTINE_UI_GUIDELINES.md`、`docs/DATA_ACCESS.md` 与真实域契约             | `$web-implement-change`、`$web-implement-list-view`；Extension 不调用                        |
-| UI、页面、Popup、Options、响应式或无障碍      | `docs/MANTINE_UI_GUIDELINES.md`，只采用当前 `projectType` 章节                  | `$web-implement-change`                                                                      |
+| UI、页面、Popup、Options、响应式或无障碍      | `DESIGN.md` → `docs/MANTINE_UI_GUIDELINES.md`，按当前宿主读取                   | `$web-implement-change`                                                                      |
 | 功能模块组合                                  | 当前 PRD、所选模块知识与模板索引、真实契约                                      | `$web-compose-capabilities`；固定设计与代码接线，按具体操作解析最小依赖，不按产品分类启用    |
 | 下游真实 HTTP 接入或 Mock 迁移                | `docs/RUNTIME_CONFIGURATION.md`、`docs/DATA_ACCESS.md` 与真实 endpoint 契约     | `$web-connect-http-service`；实施与列表流程按接入事件委托                                    |
 | 同步导出 API 与已实现业务说明                 | 当前实现、业务需求、已选服务契约与既有模块文档                                  | `$web-document-api`；在下游 `docs/api/` 按业务聚合接口与流程，维护关联并核对漂移             |
@@ -77,22 +77,22 @@
 - 候选与验收：`$web-prepare-release`、`$web-verify-delivery`、`$web-test-final-artifact-e2e`。显式候选、完整验收或真实硬要求。
 - 服务端配置：`$go-configure-release`。逐段记录、发布复用；用户变更再引导。
 
-源含 32 个 `web-*` 与 18 个 Workspace/Go Skills；入口 `$workspace-implement-feature` 委托 users、organizations、permissions、catalog、orders、wallet、audit。两类终端删除实例化与源记忆整理，Web 另删 Extension 兼容审查，Extension 另删 Web 列表 Skill；成员保留 29 个前端与 18 个协作 Skills，设计另计。资源按需装配；补装缺失的 `design-taste-frontend`，保留有效版本，优先级见 UI 规范 §1.1；发现元数据与文件一致。
+源含 32 个 `web-*` 与 18 个 Workspace/Go Skills；入口 `$workspace-implement-feature` 委托 users、organizations、permissions、catalog、orders、wallet、audit。两类终端删除实例化与源记忆整理，Web 另删 Extension 兼容审查，Extension 另删 Web 列表 Skill；成员保留 29 个前端与 18 个协作 Skills。设计只用 `DESIGN.md` 与 UI 规范，不分发旧风格资源；发现元数据与文件一致。
 
 ## 约束地图
 
-| 约束或事实                                          | 唯一来源                                                                                    | 何时读取                                 |
-| --------------------------------------------------- | ------------------------------------------------------------------------------------------- | ---------------------------------------- |
-| 产品目标、范围与成功标准                            | `docs/product_spec/README.md` 与最新产品规格                                                | 下游定义产品或改变边界                   |
-| 能力、用户可见 Task 开关/标题、计划、并行与候选偏好 | `docs/AGENT_POLICY.md`                                                                      | 启动时读策略头；相关任务再读对应章节     |
-| 工程、注释、文件、测试、记忆触发与例外              | `docs/ENGINEERING_RULES.md`                                                                 | 修改代码、测试、文档、配置、规则或 Skill |
-| 宿主技术与初始化基线                                | `docs/TS_WEB_TEMPLATE.md`                                                                   | 创建、宿主或技术基线任务                 |
-| UI、运行时、数据与日志                              | `docs/MANTINE_UI_GUIDELINES.md`、`RUNTIME_CONFIGURATION.md`、`DATA_ACCESS.md`、`LOGGING.md` | 精确命中对应领域时                       |
-| 当前状态、计划与长期决定                            | 最新产品状态、最新工作计划、最新架构决策记录（ADR）                                         | 恢复、交接、计划或决定事件               |
-| 构建、版本、发布与候选证据                          | `Version.md`、`docs/RELEASE.md`、`docs/VERIFICATION.md`                                     | 显式候选、验收或发布                     |
-| Harness 方法、升级与技术债                          | `docs/HARNESS_ENGINEERING.md`、升级锁与 Skill、`docs/TECH_DEBT.md`                          | 方法阅读、下游升级或范围外问题           |
-| Git 身份、模板与提交消息                            | Git 配置 Skill 及其引用                                                                     | 下一步实际提交时                         |
-| 商业许可                                            | `LICENSE.zh-CN.md`、`LICENSE.en.md`                                                         | 实例化、身份、分发或许可任务             |
+| 约束或事实                                          | 唯一来源                                                                                                 | 何时读取                                 |
+| --------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| 产品目标、范围与成功标准                            | `docs/product_spec/README.md` 与最新产品规格                                                             | 下游定义产品或改变边界                   |
+| 能力、用户可见 Task 开关/标题、计划、并行与候选偏好 | `docs/AGENT_POLICY.md`                                                                                   | 启动时读策略头；相关任务再读对应章节     |
+| 工程、注释、文件、测试、记忆触发与例外              | `docs/ENGINEERING_RULES.md`                                                                              | 修改代码、测试、文档、配置、规则或 Skill |
+| 宿主技术与初始化基线                                | `docs/TS_WEB_TEMPLATE.md`                                                                                | 创建、宿主或技术基线任务                 |
+| UI、运行时、数据与日志                              | `DESIGN.md`、`docs/MANTINE_UI_GUIDELINES.md`、`RUNTIME_CONFIGURATION.md`、`DATA_ACCESS.md`、`LOGGING.md` | 精确命中对应领域时                       |
+| 当前状态、计划与长期决定                            | 最新产品状态、最新工作计划、最新架构决策记录（ADR）                                                      | 恢复、交接、计划或决定事件               |
+| 构建、版本、发布与候选证据                          | `Version.md`、`docs/RELEASE.md`、`docs/VERIFICATION.md`                                                  | 显式候选、验收或发布                     |
+| Harness 方法、升级与技术债                          | `docs/HARNESS_ENGINEERING.md`、升级锁与 Skill、`docs/TECH_DEBT.md`                                       | 方法阅读、下游升级或范围外问题           |
+| Git 身份、模板与提交消息                            | Git 配置 Skill 及其引用                                                                                  | 下一步实际提交时                         |
+| 商业许可                                            | `LICENSE.zh-CN.md`、`LICENSE.en.md`                                                                      | 实例化、身份、分发或许可任务             |
 
 ## 每次任务的最小闭环
 
