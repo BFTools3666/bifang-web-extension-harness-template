@@ -7,6 +7,20 @@ import { ownershipPath, upgradeFixture, planFor } from "./harness-upgrade-fixtur
 
 /** 所有权策略、清单与源独立墓碑之间的静态一致性，与冻结计划回归分开维护。 */
 describe("upgrade ownership policy consistency", () => {
+  /** 依赖源装配 fixture 的回归必须显式裁剪，避免新测试漏登导致终端类型检查失败。 */
+  test("keeps wiring fixture consumers in the source-only boundary", async () => {
+    const directory = import.meta.dirname
+    for (const name of await readdir(directory)) {
+      if (!name.endsWith(".test.ts")) continue
+      const contents = await readFile(path.join(directory, name), "utf8")
+      if (/from\s+["']\.\/application-wiring-fixture(?:\.ts)?["']/u.test(contents)) {
+        expect(HARNESS_ONLY_PATHS, `${name} depends on source-only wiring`).toContain(
+          `tests/${name}`
+        )
+      }
+    }
+  })
+
   /** 验证磁盘上的每个 Skill 目录都被所有权清单显式覆盖，新增 Skill 漏登记会失败。 */
   test("covers every on-disk skill directory with an ownership rule", async () => {
     const manifest = JSON.parse(await readFile(ownershipPath, "utf8")) as {

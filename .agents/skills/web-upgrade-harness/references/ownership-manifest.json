@@ -35,6 +35,7 @@
       "pattern": "tests/application-ui-standards.test.ts",
       "mode": "tombstone"
     },
+    { "pattern": "tests/grid-foundation.test.ts", "mode": "tombstone" },
     {
       "pattern": ".agents/skills/web-compose-capabilities/templates/application/files/organization/PaginationControls.tsx.txt",
       "mode": "tombstone"

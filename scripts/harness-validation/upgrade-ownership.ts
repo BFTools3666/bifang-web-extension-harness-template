@@ -43,6 +43,7 @@ export const REQUIRED_UPGRADE_RULES: Readonly<Record<string, OwnershipMode>> = {
   ".harness/tooling/workspace-http.ts": "tombstone",
   "tests/application-test-adapters.ts": "tombstone",
   "tests/application-ui-standards.test.ts": "tombstone",
+  "tests/grid-foundation.test.ts": "tombstone",
   "tests/fixtures/application-api/**": "tombstone",
   ".agents/skills/workspace-implement-audit/**": "managed",
   ".agents/skills/go-implement-external-command/**": "managed",
