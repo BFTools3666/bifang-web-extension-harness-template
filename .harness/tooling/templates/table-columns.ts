@@ -60,7 +60,7 @@ export function writeColumns(key: string, value: ColumnPreferences): void {
 
 /** 控件只更新列偏好，不改变数据、排序、分页或权限。 */
 const CONTROLS = `import { Button, Checkbox, Group, NumberInput, Popover, Stack, Table, Text, UnstyledButton } from "@mantine/core"
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
+import { useEffect, useMemo, useRef, useState, type AriaAttributes, type ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 import { BRAND } from "../brand"
 import { columnWidth, normalizeColumns, readColumns, writeColumns, type ColumnDefinition, type ColumnPreferences } from "../data/storage/tableColumns"
@@ -112,7 +112,7 @@ export function TableColumnControls({ columns, disabled = false }: { columns: Co
     <Popover.Target><Button type="button" variant="default" disabled={disabled}>{t("listColumns")}</Button></Popover.Target>
     <Popover.Dropdown><Stack>
       {columns.columns.map((column) => <Group key={column.id} justify="space-between" wrap="wrap">
-        <Checkbox label={column.label} checked={columns.visible(column.id)} disabled={column.required || disabled}
+        <Checkbox label={column.label} description={column.required ? t("listRequiredColumn") : undefined} checked={columns.visible(column.id)} disabled={column.required || disabled}
           onChange={(event) => columns.toggle(column.id, event.currentTarget.checked)} />
         <NumberInput label={t("listColumnWidth", { column: column.label })} min={96} max={640} step={4} size="sm"
           placeholder={t("listColumnWidthPlaceholder")}
@@ -125,8 +125,8 @@ export function TableColumnControls({ columns, disabled = false }: { columns: Co
 }
 
 /** 真实表头拥有列宽；指针捕获、键盘箭头与数值替代共用受控状态。 */
-export function TableColumnHeader({ columns, id, children, disabled = false }: {
-  columns: Columns; id: string; children: ReactNode; disabled?: boolean
+export function TableColumnHeader({ columns, id, children, disabled = false, reservedWidth = 0, "aria-sort": ariaSort }: {
+  columns: Columns; id: string; children: ReactNode; disabled?: boolean; reservedWidth?: number; "aria-sort"?: AriaAttributes["aria-sort"]
 }) {
   const { t } = useTranslation()
   const drag = useRef<{ pointerId: number; ownerKey: string; x: number; width: number } | null>(null)
@@ -137,8 +137,9 @@ export function TableColumnHeader({ columns, id, children, disabled = false }: {
     if (active && handle.current?.hasPointerCapture(active.pointerId)) handle.current.releasePointerCapture(active.pointerId)
   }, [disabled, columns.ownerKey])
   const label = columns.columns.find((column) => column.id === id)?.label ?? id
-  return <Table.Th scope="col" style={{ width: columns.width(id) }}>
-    <Group wrap="nowrap" justify="space-between"><Text component="span" inherit>{children}</Text>
+  const ratio = columns.width(id) / Math.max(1, columns.totalWidth)
+  return <Table.Th role="columnheader" scope="col" aria-sort={ariaSort} style={{ width: "calc(" + ratio * 100 + "% - " + ratio * reservedWidth + "rem)" }}>
+    <Group wrap="nowrap" justify="space-between" className={classes.heading}><Text component="span" inherit className={classes.label}>{children}</Text>
       <UnstyledButton ref={handle} type="button" className={classes.resize} role="separator" aria-orientation="vertical"
         aria-label={t("listResizeColumn", { column: label })} aria-valuenow={columns.width(id)} aria-valuemin={96} aria-valuemax={640}
         disabled={disabled}
@@ -170,7 +171,9 @@ export function TableColumnHeader({ columns, id, children, disabled = false }: {
 `
 
 /** 调整手柄具备可点击区域和焦点，不覆写主题基础控件样式。 */
-const STYLES = `.resize {
+const STYLES = `.heading { min-width: 0; gap: var(--mantine-spacing-xs); }
+.label { min-width: 0; overflow-wrap: anywhere; }
+.resize {
   min-width: 24px;
   min-height: 24px;
   flex-shrink: 0;
@@ -179,6 +182,6 @@ const STYLES = `.resize {
   border-inline-end: 1px solid var(--mantine-color-default-border);
 }
 .resize:focus-visible {
-  outline: var(--ui-focus-width) solid var(--mantine-primary-color-filled);
+  outline: var(--ui-focus-width) solid var(--ui-grid-focus);
 }
 `

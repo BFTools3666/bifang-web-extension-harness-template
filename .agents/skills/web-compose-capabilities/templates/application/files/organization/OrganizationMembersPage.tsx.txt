@@ -1,5 +1,5 @@
 import { ApiError } from "../../data/api/client/httpClient"
-import { ListSurface, ListTable } from "../../pagination/ListSurface"
+import { ListSurface, ListTable, ListCell } from "../../pagination/ListSurface"
 import {
   useTableColumns,
   TableColumnControls,
@@ -39,9 +39,12 @@ export function OrganizationMembersPage() {
     ...membersQuery(ownerKey, owner?.organizationId ?? "", i18n.language, list.state),
     enabled: !!owner
   })
-  const denied = query.error instanceof ApiError && (query.error.status === 401 || query.error.status === 403)
+  const denied =
+    query.error instanceof ApiError && (query.error.status === 401 || query.error.status === 403)
   const readable = !!owner && !denied
-  useEffect(() => { if (!readable) setAction(null) }, [readable])
+  useEffect(() => {
+    if (!readable) setAction(null)
+  }, [readable])
   useManagementRejection(query.error, ownerKey)
   useEffect(() => {
     if (query.isSuccess && !query.isFetching && !query.isPlaceholderData)
@@ -62,7 +65,10 @@ export function OrganizationMembersPage() {
         <Group>
           <TableColumnControls columns={columns} disabled={query.isFetching || !readable} />
           {allow("team.members.invite") && (
-            <Button disabled={query.isFetching || !readable} onClick={() => setAction({ kind: "invite" })}>
+            <Button
+              disabled={query.isFetching || !readable}
+              onClick={() => setAction({ kind: "invite" })}
+            >
               {t("orgInviteMember")}
             </Button>
           )}
@@ -70,9 +76,9 @@ export function OrganizationMembersPage() {
       </Group>
       <ListSurface
         label={t("orgMemberTable")}
-        minWidth={640}
         footer={
-          readable && query.data && (
+          readable &&
+          query.data && (
             <ManagementPagination
               state={list.state}
               total={query.data.total}
@@ -92,9 +98,13 @@ export function OrganizationMembersPage() {
           }}
         />
         {readable && query.data && (
-          <ListTable style={{ width: columns.totalWidth }}>
-            <Table.Thead>
-              <Table.Tr>
+          <ListTable
+            responsiveColumns={columns.columns
+              .filter((column) => columns.visible(column.id))
+              .map((column) => ({ label: column.label, width: columns.width(column.id) }))}
+          >
+            <Table.Thead role="rowgroup">
+              <Table.Tr role="row">
                 <TableColumnHeader
                   key={tableScope + "member"}
                   id="member"
@@ -123,19 +133,19 @@ export function OrganizationMembersPage() {
                 </TableColumnHeader>
               </Table.Tr>
             </Table.Thead>
-            <Table.Tbody>
+            <Table.Tbody role="rowgroup">
               {query.data.items.map((member) => (
-                <Table.Tr key={"member:" + member.id}>
-                  <Table.Th scope="row" className={classes.name}>
+                <Table.Tr role="row" key={"member:" + member.id}>
+                  <ListCell rowHeader label={t("orgMember")} className={classes.name}>
                     {member.displayName}
                     {member.accountId === owner?.accountId && (
                       <Text size="xs" c="dimmed">
                         {t("orgMe")}
                       </Text>
                     )}
-                  </Table.Th>
+                  </ListCell>
                   {columns.visible("roles") && (
-                    <Table.Td>
+                    <ListCell label={t("orgRoles")}>
                       <Group gap="xs">
                         {member.roleNames.map((name, index) => (
                           <Badge key={member.roleIds[index] ?? name} color="gray" variant="light">
@@ -147,9 +157,9 @@ export function OrganizationMembersPage() {
                           </Badge>
                         ))}
                       </Group>
-                    </Table.Td>
+                    </ListCell>
                   )}
-                  <Table.Td>
+                  <ListCell label={t("orgActions")}>
                     <Group gap="xs">
                       {allow("team.members.nickname.update") && (
                         <Button
@@ -187,11 +197,11 @@ export function OrganizationMembersPage() {
                           </Button>
                         )}
                     </Group>
-                  </Table.Td>
+                  </ListCell>
                 </Table.Tr>
               ))}
               {!query.data.items.length && (
-                <Table.Tr>
+                <Table.Tr role="row">
                   <Table.Td
                     colSpan={columns.columns.filter((column) => columns.visible(column.id)).length}
                   >

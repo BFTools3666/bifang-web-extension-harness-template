@@ -23,7 +23,8 @@ test.each(["web", "extension"] as const)(
         : 'import {Providers} from "./providers";'
     const testSource = `import {test,expect} from "vitest";
 import {render,screen} from "@testing-library/react";
-import {useMantineTheme} from "@mantine/core";
+import {useMantineTheme,Title,Text,Button} from "@mantine/core";
+import {designVariables} from "./theme/designTokens";
 ${provider}
 /** 从实际根 Provider 读取合并后的令牌。 */
 function ThemeProbe() {
@@ -36,6 +37,10 @@ function ThemeProbe() {
       radius: theme.radius.md,
       text: theme.fontSizes.md
     })}</output>
+    <output aria-label="Typography">{JSON.stringify({font:theme.fontFamily,mono:theme.fontFamilyMonospace,
+      small:theme.fontSizes.sm,bodyLine:theme.lineHeights.md,headingWeight:theme.headings.fontWeight,h1:theme.headings.sizes.h1})}</output>
+    <output aria-label="Palette">{JSON.stringify({variables:designVariables(theme),lightText:theme.black,darkText:theme.colors.dark[0]})}</output>
+    <Title order={1}>中文 Heading 2026</Title><Text>中文 English 123</Text><Button>长按钮 Long action</Button>
   </>
 }
 /** 验证实际消费结果保留 4px 栅格及 rem 缩放单位。 */
@@ -47,6 +52,35 @@ test("consumes design spacing", () => {
   expect(JSON.parse(screen.getByLabelText("Defaults").textContent ?? "null")).toEqual({
     button: "md", input: "md", radius: "0.25rem", text: "0.875rem"
   })
+  const typography=JSON.parse(screen.getByLabelText("Typography").textContent ?? "null")
+  expect(typography.font).toMatch(/system-ui.*PingFang SC.*Microsoft YaHei.*Noto Sans/u)
+  expect(typography.mono).toContain("ui-monospace")
+  expect(typography.small).toBe("0.8125rem")
+  expect(typography.bodyLine).toBe("1.6")
+  expect(typography.h1).toEqual({fontSize:"1.5rem",lineHeight:"1.35"})
+  expect(typography.headingWeight).toBe("600")
+  expect(screen.getByRole("heading",{level:1,name:"中文 Heading 2026"})).toBeInTheDocument()
+  expect(screen.getByRole("button",{name:"长按钮 Long action"})).toBeInTheDocument()
+  const palette=JSON.parse(screen.getByLabelText("Palette").textContent ?? "null")
+  /** 独立核算文字和焦点对比度，不复用主题内部选择公式。 */
+  function luminance(hex:string) {
+    const channels=[1,3,5].map(offset=>parseInt(hex.slice(offset,offset+2),16)/255)
+      .map(value=>value<=0.04045?value/12.92:((value+0.055)/1.055)**2.4)
+    return (channels[0]??0)*0.2126+(channels[1]??0)*0.7152+(channels[2]??0)*0.0722
+  }
+  /** 共享表面包括斑马、悬停和选中，两种方案都满足普通文字阈值。 */
+  function contrast(a:string,b:string) {
+    const left=luminance(a),right=luminance(b)
+    return (Math.max(left,right)+0.05)/(Math.min(left,right)+0.05)
+  }
+  for(const scheme of ["light","dark"]) {
+    const vars=palette.variables[scheme]
+    for(const key of ["--ui-grid-stripe","--ui-grid-hover","--ui-grid-selected"]) {
+      expect(contrast(vars[key],scheme==="light"?palette.lightText:palette.darkText)).toBeGreaterThanOrEqual(4.5)
+      expect(contrast(vars[key],vars["--ui-placeholder-color"])).toBeGreaterThanOrEqual(4.5)
+      expect(contrast(vars[key],vars["--ui-grid-focus"])).toBeGreaterThanOrEqual(3)
+    }
+  }
 });`
     const output = await runApplicationFixture(
       { selection: { host, modules: [] }, homePageSource: HOME_SOURCE, dataMode: "mock" },

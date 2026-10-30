@@ -1,5 +1,5 @@
 import { ApiError } from "../../data/api/client/httpClient"
-import { ListSurface, ListTable } from "../../pagination/ListSurface"
+import { ListSurface, ListTable, ListCell } from "../../pagination/ListSurface"
 import {
   useTableColumns,
   TableColumnControls,
@@ -40,9 +40,12 @@ export function OrganizationRolesPage() {
     ...rolesQuery(ownerKey, owner?.organizationId ?? "", i18n.language, list.state),
     enabled: !!owner
   })
-  const denied = query.error instanceof ApiError && (query.error.status === 401 || query.error.status === 403)
+  const denied =
+    query.error instanceof ApiError && (query.error.status === 401 || query.error.status === 403)
   const readable = !!owner && !denied
-  useEffect(() => { if (!readable) setAction(null) }, [readable])
+  useEffect(() => {
+    if (!readable) setAction(null)
+  }, [readable])
   useManagementRejection(query.error, ownerKey)
   useEffect(() => {
     if (query.isSuccess && !query.isFetching && !query.isPlaceholderData)
@@ -63,7 +66,10 @@ export function OrganizationRolesPage() {
         <Group>
           <TableColumnControls columns={columns} disabled={query.isFetching || !readable} />
           {allow("team.roles.create") && (
-            <Button disabled={query.isFetching || !readable} onClick={() => setAction({ kind: "create" })}>
+            <Button
+              disabled={query.isFetching || !readable}
+              onClick={() => setAction({ kind: "create" })}
+            >
               {t("teamCreateRole")}
             </Button>
           )}
@@ -71,9 +77,9 @@ export function OrganizationRolesPage() {
       </Group>
       <ListSurface
         label={t("orgRoleTable")}
-        minWidth={640}
         footer={
-          readable && query.data && (
+          readable &&
+          query.data && (
             <ManagementPagination
               state={list.state}
               total={query.data.total}
@@ -93,9 +99,13 @@ export function OrganizationRolesPage() {
           }}
         />
         {readable && query.data && (
-          <ListTable style={{ width: columns.totalWidth }}>
-            <Table.Thead>
-              <Table.Tr>
+          <ListTable
+            responsiveColumns={columns.columns
+              .filter((column) => columns.visible(column.id))
+              .map((column) => ({ label: column.label, width: columns.width(column.id) }))}
+          >
+            <Table.Thead role="rowgroup">
+              <Table.Tr role="row">
                 <TableColumnHeader
                   key={tableScope + "role"}
                   id="role"
@@ -134,30 +144,30 @@ export function OrganizationRolesPage() {
                 </TableColumnHeader>
               </Table.Tr>
             </Table.Thead>
-            <Table.Tbody>
+            <Table.Tbody role="rowgroup">
               {query.data.items.map((role) => (
-                <Table.Tr key={"role:" + role.id}>
-                  <Table.Th scope="row" className={classes.name}>
+                <Table.Tr role="row" key={"role:" + role.id}>
+                  <ListCell rowHeader label={t("orgRole")} className={classes.name}>
                     {role.protected
                       ? t(role.code === "owner" ? "organizationOwner" : "orgBaseRole")
                       : role.name}
                     <Text size="xs" c="dimmed">
                       {role.code}
                     </Text>
-                  </Table.Th>
+                  </ListCell>
                   {columns.visible("permissions") && (
-                    <Table.Td>
+                    <ListCell label={t("orgPermissions")}>
                       {t("orgPermissionCount", { count: role.permissions.length })}
-                    </Table.Td>
+                    </ListCell>
                   )}
                   {columns.visible("type") && (
-                    <Table.Td>
+                    <ListCell label={t("orgType")}>
                       <Badge color="gray" variant="light">
                         {t(role.protected ? "teamSystemRole" : "orgCustomRole")}
                       </Badge>
-                    </Table.Td>
+                    </ListCell>
                   )}
-                  <Table.Td>
+                  <ListCell label={t("orgActions")}>
                     <Group gap="xs">
                       <Button
                         variant="subtle"
@@ -183,11 +193,11 @@ export function OrganizationRolesPage() {
                         </Button>
                       )}
                     </Group>
-                  </Table.Td>
+                  </ListCell>
                 </Table.Tr>
               ))}
               {!query.data.items.length && (
-                <Table.Tr>
+                <Table.Tr role="row">
                   <Table.Td
                     colSpan={columns.columns.filter((column) => columns.visible(column.id)).length}
                   >

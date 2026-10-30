@@ -6,7 +6,8 @@ export function themeFiles(): Map<string, string> {
       `import type { CSSVariablesResolver, MantineThemeOverride } from "@mantine/core"
 import classes from "./design.module.css"
 
-const FONT_FAMILY = "ui-sans-serif, system-ui, -apple-system, sans-serif"
+const FONT_FAMILY = 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", sans-serif, "Apple Color Emoji", "Segoe UI Emoji"'
+const MONO_FAMILY = 'ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", Menlo, "PingFang SC", "Microsoft YaHei", monospace'
 const CONTROL_SIZE = "md"
 const MOTION = { duration: 200, timingFunction: "ease-in-out" }
 
@@ -14,9 +15,17 @@ const MOTION = { duration: 200, timingFunction: "ease-in-out" }
 export const designTokens: MantineThemeOverride = {
   black: "#1d2129",
   fontFamily: FONT_FAMILY,
-  fontSizes: { xs: "0.75rem", sm: "0.75rem", md: "0.875rem", lg: "1rem", xl: "1.25rem" },
-  lineHeights: { xs: "1.5", sm: "1.5", md: "1.5", lg: "1.5", xl: "1.5" },
-  headings: { fontFamily: FONT_FAMILY, fontWeight: "600" },
+  fontFamilyMonospace: MONO_FAMILY,
+  fontSizes: { xs: "0.75rem", sm: "0.8125rem", md: "0.875rem", lg: "1rem", xl: "1.125rem" },
+  lineHeights: { xs: "1.5", sm: "1.5", md: "1.6", lg: "1.6", xl: "1.5" },
+  headings: { fontFamily: FONT_FAMILY, fontWeight: "600", sizes: {
+    h1: { fontSize: "1.5rem", lineHeight: "1.35" },
+    h2: { fontSize: "1.25rem", lineHeight: "1.4" },
+    h3: { fontSize: "1.125rem", lineHeight: "1.45" },
+    h4: { fontSize: "1rem", lineHeight: "1.5" },
+    h5: { fontSize: "0.875rem", lineHeight: "1.5" },
+    h6: { fontSize: "0.8125rem", lineHeight: "1.5" }
+  } },
   defaultRadius: "md",
   radius: { xs: "0.125rem", sm: "0.125rem", md: "0.25rem", lg: "0.5rem", xl: "0.75rem" },
   spacing: { xs: "0.25rem", sm: "0.5rem", md: "1rem", lg: "1.5rem", xl: "2rem" },
@@ -26,7 +35,8 @@ export const designTokens: MantineThemeOverride = {
     md: "0 8px 24px rgba(0, 0, 0, 0.16)"
   },
   components: {
-    Button: { defaultProps: { size: CONTROL_SIZE } },
+    Button: { defaultProps: { size: CONTROL_SIZE }, classNames: { root: classes.button, label: classes.label } },
+    Text: { defaultProps: { size: "md" } },
     Input: { defaultProps: { size: CONTROL_SIZE }, classNames: { input: classes.placeholder } },
     InputWrapper: { defaultProps: { size: CONTROL_SIZE } },
     TextInput: { defaultProps: { size: CONTROL_SIZE } },
@@ -59,19 +69,47 @@ export const designVariables: CSSVariablesResolver = () => ({
     "--ui-header-height": "4.5rem",
     "--ui-focus-width": "2px",
     "--ui-font-weight-medium": "500",
+    "--ui-font-weight-normal": "400",
     "--ui-font-weight-strong": "600",
+    "--ui-letter-spacing": "normal",
+    "--ui-table-line-height": "1.5",
+    "--ui-cell-padding": "0.5rem",
+    "--ui-sticky-offset": "0px",
+    "--ui-grid-height": "32rem",
     "--ui-skip-layer": "500",
     "--ui-transition-duration": String(MOTION.duration) + "ms",
     "--ui-transition-timing": MOTION.timingFunction
   },
-  light: { "--ui-placeholder-color": "var(--mantine-color-gray-7)" },
-  dark: { "--ui-placeholder-color": "var(--mantine-color-dark-1)" }
+  light: {
+    "--ui-placeholder-color": "#495057", "--mantine-color-dimmed": "#495057",
+    "--ui-grid-stripe": "#f1f3f5", "--ui-grid-hover": "#e9ecef",
+    "--ui-grid-selected": "#dbe4ff", "--ui-grid-border": "#868e96",
+    "--ui-grid-focus": "#364fc7"
+  },
+  dark: {
+    "--ui-placeholder-color": "#c1c2c5", "--mantine-color-dimmed": "#c1c2c5",
+    "--ui-grid-stripe": "#25262b", "--ui-grid-hover": "#373a40",
+    "--ui-grid-selected": "#303f69", "--ui-grid-border": "#909296",
+    "--ui-grid-focus": "#bac8ff"
+  }
 })
 `
     ],
     [
       "src/theme/design.module.css",
-      `.placeholder::placeholder {
+      `:global(body) {
+  font-synthesis: none;
+  letter-spacing: var(--ui-letter-spacing);
+  overflow-wrap: anywhere;
+}
+:global(code), :global(pre), :global(kbd) {
+  font-family: var(--mantine-font-family-monospace);
+}
+:global(pre) { white-space: pre-wrap; overflow-wrap: anywhere; }
+:global([data-numeric]) { font-variant-numeric: tabular-nums; }
+.button { height: auto; min-height: var(--button-height); }
+.label { white-space: normal; padding-block: var(--mantine-spacing-xs); }
+.placeholder::placeholder {
   color: var(--ui-placeholder-color);
   opacity: 1;
 }

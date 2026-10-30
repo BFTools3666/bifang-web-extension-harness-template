@@ -231,6 +231,7 @@ export interface PaginationControlsLabels {
   readonly pageSize: string
   readonly pageSizePlaceholder?: string
   readonly range?: (from: number, to: number, total: number) => string
+  readonly summary?: (page: number, totalPages: number) => string
 }
 
 /** 说明 PaginationControlsProps 的稳定结构与职责边界。 */
@@ -241,6 +242,7 @@ export interface PaginationControlsProps {
   readonly onPageChange: (page: number) => void
   readonly onPageSizeChange: (pageSize: PageSize) => void
   readonly disabled?: boolean
+  readonly showRange?: boolean
 }
 
 /** 说明 normalizedTotal 的稳定结构与职责边界。 */
@@ -255,7 +257,8 @@ export function PaginationControls({
   labels,
   onPageChange,
   onPageSizeChange,
-  disabled = false
+  disabled = false,
+  showRange = true
 }: PaginationControlsProps) {
   const pageCount = Math.ceil(normalizedTotal(total) / request.pageSize)
   const validPage = request.page <= Math.max(1, pageCount)
@@ -263,8 +266,8 @@ export function PaginationControls({
   return (
     <nav aria-label={labels.navigation} className={classes.footer}>
       <Group align="center" justify="space-between" wrap="wrap" gap="md">
-        {labels.range && validPage && (
-          <Text size="sm" c="dimmed" role="status">
+        {labels.range && validPage && showRange && (
+          <Text size="sm" c="dimmed" role="status" data-numeric>
             {labels.range(
               normalizedTotal(total) ? (request.page - 1) * request.pageSize + 1 : 0,
               Math.min(request.page * request.pageSize, normalizedTotal(total)),
@@ -284,7 +287,7 @@ export function PaginationControls({
               data={PAGE_SIZES.map((value) => ({ value: String(value), label: String(value) }))}
               allowDeselect={false}
               disabled={disabled}
-              w={80}
+              className={classes.capacity}
               size="sm"
               onChange={(value) => {
                 const pageSize = Number(value)
@@ -294,6 +297,9 @@ export function PaginationControls({
           </div>
           {pageCount > 0 && validPage ? (
             <Pagination
+              className={classes.pagination}
+              layout="responsive"
+              formatLabel={({ page, totalPages }) => labels.summary?.(page, totalPages) ?? labels.page(page)}
               total={pageCount}
               value={request.page}
               onChange={onPageChange}

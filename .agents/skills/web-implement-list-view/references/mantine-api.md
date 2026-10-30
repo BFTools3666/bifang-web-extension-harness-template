@@ -4,26 +4,20 @@
 
 ## 表格与滚动区
 
-二维关系确实需要表格时使用 Mantine `Table` 与 `Table.ScrollContainer`：
+二维关系确实需要表格时优先复用 `DataGrid`；定制表格使用 `ListSurface` 与 Mantine `Table`，仅纵向滚动：
 
 ```tsx
-<Table.ScrollContainer
-  minWidth={tableMinWidth}
-  type="native"
-  role="region"
-  aria-label={messages.scrollRegion}
-  tabIndex={0}
->
+<ListSurface label={messages.scrollRegion}>
   <Table stickyHeader stickyHeaderOffset={layout.listStickyHeaderOffset}>
     <Table.Thead className={styles.tableHeader}>{/* 列标题 */}</Table.Thead>
     <Table.Tbody>{/* 数据行 */}</Table.Tbody>
   </Table>
-</Table.ScrollContainer>
+</ListSurface>
 ```
 
 - offset 从当前 AppShell/页面布局事实传入，不在列表组件硬编码。
 - `Table.Thead` 的稳定 CSS Module 类使用 `.tableHeader th { background-color: var(--mantine-color-body); }`；表头背景不得透明或固定为单一色彩模式的颜色，以免滚动数据透出。粘滞定位仍由 Mantine 管理。
-- `minWidth` 按真实列宽声明；页面根不横向滚动，局部 viewport 可由键盘进入且有 focus ring。
+- 不设置撑开容器的 minWidth 或 totalWidth；列宽偏好转换为容器内比例，Grid 与容器均无横向滚动，窄容器按具名字段回流。局部 viewport 可由键盘进入且有 focus ring。
 - 主业务列可用 `Table.Th scope="row"`；列标题用 `scope="col"`，当前排序列才设置 `aria-sort`。
 - 行 hover/focus 只提供位置反馈，不自动赋予点击语义，也不代替状态文字、选择控件或可见焦点。
 
