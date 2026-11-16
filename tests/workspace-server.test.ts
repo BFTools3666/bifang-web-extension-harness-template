@@ -1,3 +1,4 @@
+import { seedGoInfrastructure } from "./server-infrastructure-support.ts"
 import { execFile } from "node:child_process"
 import { cp, mkdir } from "node:fs/promises"
 import path from "node:path"
@@ -12,6 +13,7 @@ test("生成的 Go 日志保持传输完整、缓冲有界且实际配置不泄�
   const relative = ".agents/skills/go-implement-service/assets/go-service"
   await mkdir(path.dirname(path.join(root, relative)), { recursive: true })
   await cp(path.join(repositoryRoot, relative), path.join(root, relative), { recursive: true })
+  await seedGoInfrastructure(root)
   await generateGoServer(root, "example_server", "example_server")
   const result = await promisify(execFile)(
     "go",

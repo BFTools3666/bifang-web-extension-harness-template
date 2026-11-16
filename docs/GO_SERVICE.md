@@ -4,7 +4,17 @@ Go 服务是 Workspace 中的 `_server` 成员，Git、产品规格、Task、策
 
 ## 基线与分层
 
-Go >=1.26.0；具体依赖版本见服务 `go.mod/go.sum`。迁入 Gin 1.12.0、GORM 1.31.2、SQLite、Viper 配置、validator、logrus、日志轮转、雪花 ID、请求 ID、i18n、CORS、限流、Swagger 和优雅退出。默认持久化为 SQLite，驱动声明不意味着授权创建 MySQL/PostgreSQL 服务。
+Go >=1.26.0；具体依赖版本见服务 `go.mod/go.sum`。迁入 Gin 1.12.0、GORM 1.31.2、SQLite、Viper 配置、validator、logrus、日志轮转、雪花 ID、请求 ID、i18n、CORS、限流、Swagger 和优雅退出。默认持久化为 SQLite，选择外部驱动不意味着授权创建外部数据库。创建选型以根 .harness/workspace.json 的 service.options 为准；生成器装配对应模板，外部服务联通仍需单独验证。
+
+## 服务端选型交接
+
+创建自建服务时由原创建题库询问六项选型；已有服务和纯本地模式不询问。数据库默认 SQLite，支持选择 MySQL、Postgres、MongoDB；缓存默认 Memory，可选 Redis；推送、MQ、OSS 默认关闭，日志默认命令行。生成器消费 service.options 装配源码、配置、依赖和生命周期；完整创建继续实现实际业务消费者并验证，不另起初始化问卷。
+
+可装配模板在 `.agents/skills/go-implement-service/templates/infrastructure/`，与摘要锁定的原始迁入资产分开维护。SQL 使用所选 GORM 驱动；MongoDB 使用独立客户端及带组织过滤、乐观版本的文档仓储。Memory 为有界 LRU/TTL，Redis 使用真实客户端；推送支持 WS、SSE、gRPC；MQ 支持 RabbitMQ、Kafka、NATS JetStream、RocketMQ；存储支持 S3 兼容服务、阿里云 OSS、腾讯云 COS；日志支持命令行、轮转文件及同时输出。只生成选中提供者，未选能力不产生客户端或后台任务。
+
+生成的 `INFRASTRUCTURE.md` 说明实际客户端调用和部署约束。`bootstrap.New` 创建资源，`Dependencies.Platform` 显式注入，`Container.Close` 逆序释放；缺少外部连接配置即拒绝启动。推送不自动公开路由，领域负责鉴权、可信 scope 和断线快照恢复；MQ 消费由业务显式启动，至少一次投递须以业务事务去重并配置死信；上传下载有大小限制，下载必须关闭。MongoDB 索引和多文档事务依真实领域实施，不能套用 GORM 专属领域模板。RocketMQ 使用 4.x 原生协议 SDK，部署须核对协议及 TLS 兼容性。模板编译或本地测试不能替代外部数据库、Broker 与云存储的真实联通验证。
+
+## 服务基线约束
 
 ```text
 cmd/server → bootstrap → api/v1 → service → repository → database

@@ -1,0 +1,39 @@
+package logger
+
+import (
+	"os"
+	"path/filepath"
+	"project_id/internal/config"
+	"strings"
+	"testing"
+)
+
+// TestSelectedLoggerOutputs 验证独立实例、文件轮转输出、JSON 格式和不可写路径拒绝。
+func TestSelectedLoggerOutputs(t *testing.T) {
+	root := t.TempDir()
+	file := filepath.Join(root, "server.log")
+	cfg := config.Log{Level: "info", Format: "json", Output: file, MaxSize: 1, MaxAge: 1, MaxBackups: 1}
+	logger, err := Setup(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	logger.Info("event-ready")
+	Close(logger)
+	data, err := os.ReadFile(file)
+	if err != nil || !strings.Contains(string(data), `"msg":"event-ready"`) {
+		t.Fatal("file output", err)
+	}
+	cfg.Output = ""
+	second, err := Setup(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if second == logger {
+		t.Fatal("global logger leak")
+	}
+	Close(second)
+	cfg.Output = filepath.Join(file, "nested.log")
+	if _, err := Setup(cfg); err == nil {
+		t.Fatal("must reject unwritable path")
+	}
+}

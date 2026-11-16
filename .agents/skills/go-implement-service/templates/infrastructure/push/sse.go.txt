@@ -1,0 +1,61 @@
+package push
+
+import (
+	"encoding/base64"
+	"fmt"
+	"net/http"
+	"time"
+)
+
+// ServeSSE 由已鉴权的业务 handler 调用，scope 不得直接来自客户端参数。
+// 消息为 base64 字节；无持久重放，客户端重连后应重新查询领域快照。
+func (h *Hub) ServeSSE(w http.ResponseWriter, r *http.Request, scope string) {
+	events, cancel, err := h.subscribe(scope)
+	if err != nil {
+		http.Error(w, "subscription rejected", http.StatusForbidden)
+		return
+	}
+	defer cancel()
+	controller := http.NewResponseController(w)
+	// 清除普通响应总时限，改为每次写入的独立预算，防止慢客户端占用资源。
+	if err := controller.SetWriteDeadline(time.Time{}); err != nil {
+		http.Error(w, "stream unsupported", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache, no-transform")
+	if controller.SetWriteDeadline(time.Now().Add(10*time.Second)) != nil {
+		return
+	}
+	if _, err := fmt.Fprint(w, ": ready\n\n"); err != nil {
+		return
+	}
+	if controller.Flush() != nil {
+		return
+	}
+	heartbeat := time.NewTicker(15 * time.Second)
+	defer heartbeat.Stop()
+	for {
+		var frame string
+		select {
+		case <-r.Context().Done():
+			return
+		case payload, open := <-events:
+			if !open {
+				return
+			}
+			frame = "data: " + base64.StdEncoding.EncodeToString(payload) + "\n\n"
+		case <-heartbeat.C:
+			frame = ": heartbeat\n\n"
+		}
+		if controller.SetWriteDeadline(time.Now().Add(10*time.Second)) != nil {
+			return
+		}
+		if _, err := fmt.Fprint(w, frame); err != nil {
+			return
+		}
+		if controller.Flush() != nil {
+			return
+		}
+	}
+}

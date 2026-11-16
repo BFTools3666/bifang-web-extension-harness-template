@@ -1,3 +1,4 @@
+import { SERVER_OPTIONS } from "../.harness/tooling/server-options.ts"
 import { realpath } from "node:fs/promises"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
@@ -49,7 +50,7 @@ export interface InstantiateCliRuntime {
 
 /** 返回创建命令的稳定用法说明。 */
 function usage(): string {
-  return "用法：pnpm instantiate -- <parent-outside-harness> --type web|extension --server existing|create|none --name <name> [--requirements-file <md-or-txt-path> | --requirements-text <text>] [--english-name <English translation>] [--id <id>] [--policy-mode 预设|自定义] [--description <text> （Extension 必填）] [--identity-i18n <json>] [--development-base-url <url>] [--test-base-url <url>] [--release-base-url <https-url>] [自定义策略参数]；选择 create 时创建所选前端和 Go 服务；明确不需要服务端则 none，只创建前端，最终目录为父目录/项目标识"
+  return "用法：pnpm instantiate -- <parent-outside-harness> --type web|extension --server existing|create|none --name <name> [--server-database sqlite|mysql|postgres|mongo] [--server-cache memory|redis] [--server-push none|ws|sse|grpc] [--server-mq none|rabbitmq|kafka|nats|rocketmq] [--server-log console|file|both] [--server-storage none|s3|aliyun|cos] [--requirements-file <md-or-txt-path> | --requirements-text <text>] [--english-name <English translation>] [--id <id>] [--policy-mode 预设|自定义] [--description <text> （Extension 必填）] [--identity-i18n <json>] [--development-base-url <url>] [--test-base-url <url>] [--release-base-url <https-url>] [自定义策略参数]；选择 create 时创建所选前端和 Go 服务；明确不需要服务端则 none，只创建前端，最终目录为父目录/项目标识"
 }
 
 /** 标记每个初始化字段来自命令行、交互表单、默认值或预设。 */
@@ -93,6 +94,12 @@ function inputSources(
         : "沿用单项策略",
     confirmedBy: optionNames.has("confirmed-by") ? "命令行参数" : "当前用户（自动记录）"
   }
+  for (const [field, option] of Object.entries(SERVER_OPTIONS))
+    result[field] = optionNames.has(option)
+      ? "命令行参数"
+      : interactive
+        ? "交互表单"
+        : "题库默认值（仅自建服务适用）"
   for (const choice of choices) {
     result[choice.field] =
       policyMode === "recommended"
@@ -252,6 +259,7 @@ export async function runInstantiateCli(
       projectType: init.projectType,
       workspaceMembers: init.workspaceMembers,
       serverMode: init.serverMode,
+      serverOptions: init.serverOptions,
       apiContract: init.apiContract,
       name: init.name,
       id: init.id,

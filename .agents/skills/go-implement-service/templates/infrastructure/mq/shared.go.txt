@@ -1,0 +1,53 @@
+// Package mq 提供所选 Broker 的发布与显式消费；不自动创建业务订阅。
+package mq
+
+import (
+	"context"
+	"errors"
+	"sync/atomic"
+	"time"
+)
+
+// Message 的 ID 是业务幂等标识；投递至少一次，消费者须在事务中去重。
+type Message struct {
+	ID   string
+	Body []byte
+}
+
+// Handler 只有业务提交成功才返回 nil；取消时必须及时返回。
+type Handler func(context.Context, Message) error
+
+// guard 限制同一客户端只有一个受调用方拥有的消费循环。
+type guard struct {
+	consuming atomic.Bool
+	maxBytes  int
+	timeout   time.Duration
+}
+
+// begin 拒绝并行消费；结束由调用方 defer 释放。
+func (g *guard) begin() error {
+	if !g.consuming.CompareAndSwap(false, true) {
+		return errors.New("mq: 已有消费循环")
+	}
+	return nil
+}
+
+// validate 拒绝缺失幂等标识和超限消息，不把秘密或正文写入错误。
+func (g *guard) validate(message Message) error {
+	if message.ID == "" || len(message.ID) > 256 || len(message.Body) > g.maxBytes {
+		return errors.New("mq: 标识或消息大小无效")
+	}
+	return nil
+}
+
+// retryPause 避免业务失败或 Broker 暂时无消息时热循环。
+func retryPause(ctx context.Context) error {
+	timer := time.NewTimer(time.Second)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		return nil
+	}
+}

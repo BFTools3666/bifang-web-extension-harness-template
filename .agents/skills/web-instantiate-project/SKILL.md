@@ -59,7 +59,7 @@ description: 通过源 Web Harness 创建独立 React Web 或 Plasmo Chrome MV3 
 
 ## 执行唯一创建入口
 
-1. 从源 Harness 根调用唯一公开的 `pnpm instantiate` 入口，并传入已确认的源外绝对父目录、身份、可选策略覆盖、成员选择与 --server existing|create|none；已有服务必须传入开发 BaseURL。Workspace 结构与成员命名以 [工作区规范](../../../docs/WORKSPACE_TEMPLATE.md) 为准，Go 不另开问卷。CLI 在父目录下以生成的项目标识创建子目录；英文显示名称可省略 `--english-name`，显式 `--id` 仅用于复用用户已给标识。初始化不创建 Release 候选，因此不询问或接受 E2E 选择。不要在目标根预先运行 frozen install，也不要直接调用底层 initializer；`instantiate` 会在目标同级 sibling staging 内部重写 manifest，再用一次 `pnpm install --no-frozen-lockfile --prefer-offline` 建立首份与目标清单一致的 lockfile：
+1. 从源 Harness 根调用唯一公开的 `pnpm instantiate` 入口，并传入已确认的源外绝对父目录、身份、可选策略覆盖、成员选择与 --server existing|create|none；已有服务必须传入开发 BaseURL。Workspace 结构与成员命名以 [工作区规范](../../../docs/WORKSPACE_TEMPLATE.md) 为准，Go 不另开问卷；自建服务六项选型复用[初始化表单](references/initialization-form.md#自建服务选项询问)，逐项询问并进入最终确认。CLI 在父目录下以生成的项目标识创建子目录；英文显示名称可省略 `--english-name`，显式 `--id` 仅用于复用用户已给标识。初始化不创建 Release 候选，因此不询问或接受 E2E 选择。不要在目标根预先运行 frozen install，也不要直接调用底层 initializer；`instantiate` 会在目标同级 sibling staging 内部重写 manifest，再用一次 `pnpm install --no-frozen-lockfile --prefer-offline` 建立首份与目标清单一致的 lockfile：
 
    ```text
    pnpm instantiate -- <parent-outside-harness> --type <web|extension> --server <existing|create|none> \
@@ -82,7 +82,7 @@ description: 通过源 Web Harness 创建独立 React Web 或 Plasmo Chrome MV3 
 1. 工程事务成功后复核目标 Workspace、精确成员身份、规范根目录与所选宿主，读取目标 `AGENTS.md`，在同一任务内转到目标根继续，不在源实施产品。
 2. Workspace 按所选 Web 或 Extension 宿主设计。`$web-define-product` 复用完整创建确认登记 Approved PRD，注明实际确认来源；`$web-compose-capabilities` 提供固定设计和操作依赖，`$web-design-prototype` 组合一个真实交互原型、自查并展示；PRD 可记录 `创建确认：<revision>` 追溯产品范围，但必须等待展示后的新用户确认，再运行 `pnpm prototype:check <scope> <设计请求来源> --member <精确成员目录>`，传入设计阶段交接的实际成员和 scope；仅初始单前端默认 initial-create 并可省略成员参数。通过后才交接前后端开发及测试；无回复、旧创建确认和原型豁免均不能放行首版。
 3. 原型确认与准入核验通过后，`$web-implement-change` 使用 [固定应用装配合同](../web-compose-capabilities/templates/application/wiring.md)，接入所选页面、路由、导航、用户区、HTTP、Query 与状态 owner，并按需求实现真实 HomePage。固定模板不是产品正文。基础身份必须包含登录、用户信息、匿名守卫、安全返回、Token、退出及当前 401 清理；权限同时用于路由、页面、导航、元素和提交前复核。
-4. 运行首版变化需要的类型检查、相关非空行为测试和实际开发浏览器核心流程走查；Extension 走查 Chrome 与 Firefox 的受影响流程。开发走查不调用最终产物 E2E Skill，不产生 Release 候选。产品数据只用真实 adapter；自建服务由对应领域 Skill 完成 Go、前端和联调，已有服务消费可信契约；测试替身不能替代真实联通。
+4. 运行首版变化需要的类型检查、相关非空行为测试和实际开发浏览器核心流程走查；Extension 走查 Chrome 与 Firefox 的受影响流程。开发走查不调用最终产物 E2E Skill，不产生 Release 候选。产品数据只用真实 adapter；自建服务先消费 Workspace service.options 按已确认数据库、缓存、推送、MQ、日志和 OSS 完成实际装配与验证；中性基线不能代替所选能力。自建服务由对应领域 Skill 完成 Go、前端和联调，已有服务消费可信契约；测试替身不能替代真实联通。
 5. 产品阶段失败保留已发布下游及修改，修复后复验；不能删除工程回滚现场，也不能以工程事务成功结束完整创建。只有要求最终 dist/zip 或发布时才进入相应门禁；凭据、真实扣款、生产或外部写入按原授权与专用门禁执行。
 
 ## 不变量

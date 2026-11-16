@@ -1,0 +1,57 @@
+package push
+
+import (
+	"context"
+	"project_id/internal/config"
+	"testing"
+)
+
+// TestPushScopeCapacityAndClose 验证作用域隔离、慢订阅断开及幂等资源释放。
+func TestPushScopeCapacityAndClose(t *testing.T) {
+	ctx := context.Background()
+	hub, err := New(ctx, config.Push{Buffer: 1, MaxClients: 2, MaxBytes: 8})
+	if err != nil {
+		t.Fatal(err)
+	}
+	a, cancelA, err := hub.subscribe("a")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cancelA()
+	b, cancelB, err := hub.subscribe("b")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cancelB()
+	if _, _, err := hub.subscribe("c"); err == nil {
+		t.Fatal("capacity")
+	}
+	if hub.Publish(ctx, "a", []byte("one")) != nil {
+		t.Fatal("publish")
+	}
+	if string(<-a) != "one" {
+		t.Fatal("payload")
+	}
+	select {
+	case <-b:
+		t.Fatal("cross scope")
+	default:
+	}
+	_ = hub.Publish(ctx, "a", []byte("one"))
+	_ = hub.Publish(ctx, "a", []byte("two"))
+	<-a
+	if _, open := <-a; open {
+		t.Fatal("slow subscriber")
+	}
+	if hub.Publish(ctx, "b", make([]byte, 9)) == nil {
+		t.Fatal("size")
+	}
+	_ = hub.Close()
+	_ = hub.Close()
+	if _, open := <-b; open {
+		t.Fatal("close")
+	}
+	if hub.Publish(ctx, "a", nil) == nil {
+		t.Fatal("publish after close")
+	}
+}

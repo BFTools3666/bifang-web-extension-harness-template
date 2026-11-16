@@ -1,0 +1,129 @@
+package mq
+
+import (
+	"context"
+	"errors"
+	rocketmq "github.com/apache/rocketmq-client-go/v2"
+	"github.com/apache/rocketmq-client-go/v2/consumer"
+	"github.com/apache/rocketmq-client-go/v2/primitive"
+	"github.com/apache/rocketmq-client-go/v2/producer"
+	"project_id/internal/config"
+	"sync"
+)
+
+// Client 持有生产者和显式启动的消费者；不使用 SDK 自动业务重试。
+type Client struct {
+	guard
+	producer rocketmq.Producer
+	cfg      config.MQ
+	mu       sync.Mutex
+	closed   bool
+	consumer rocketmq.PushConsumer
+}
+
+// New 初始化所选生产者；NameServer 地址和 ACL 只来自服务端配置。
+func New(ctx context.Context, cfg config.MQ) (*Client, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	options := []producer.Option{producer.WithNameServer(cfg.Brokers), producer.WithGroupName(cfg.Group + "-producer"), producer.WithRetry(0), producer.WithSendMsgTimeout(cfg.Timeout)}
+	if cfg.Username != "" {
+		options = append(options, producer.WithCredentials(primitive.Credentials{AccessKey: cfg.Username, SecretKey: cfg.Password}))
+	}
+	client, err := rocketmq.NewProducer(options...)
+	if err != nil {
+		return nil, errors.New("mq: RocketMQ 配置无效")
+	}
+	if err := client.Start(); err != nil {
+		_ = client.Shutdown()
+		return nil, errors.New("mq: RocketMQ 启动失败")
+	}
+	return &Client{guard: guard{maxBytes: cfg.MaxBytes, timeout: cfg.Timeout}, producer: client, cfg: cfg}, nil
+}
+
+// Publish 发送带业务去重键的消息；结果未知由业务查询或幂等键恢复。
+func (c *Client) Publish(ctx context.Context, message Message) error {
+	if err := c.validate(message); err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(ctx, c.timeout)
+	defer cancel()
+	msg := primitive.NewMessage(c.cfg.Topic, message.Body)
+	msg.WithKeys([]string{message.ID})
+	result, err := c.producer.SendSync(ctx, msg)
+	if err != nil || result == nil || result.Status != primitive.SendOK {
+		return errors.New("mq: RocketMQ 未确认，结果可能未知")
+	}
+	return nil
+}
+
+// Consume 由调用方持有，SDK 回调使用父取消信号与单消息超时。
+func (c *Client) Consume(ctx context.Context, handler Handler) error {
+	if handler == nil {
+		return errors.New("mq: 缺少消费者")
+	}
+	if err := c.begin(); err != nil {
+		return err
+	}
+	defer c.consuming.Store(false)
+	options := []consumer.Option{consumer.WithNameServer(c.cfg.Brokers), consumer.WithGroupName(c.cfg.Group), consumer.WithConsumeMessageBatchMaxSize(1), consumer.WithConsumeGoroutineNums(1)}
+	if c.cfg.Username != "" {
+		options = append(options, consumer.WithCredentials(primitive.Credentials{AccessKey: c.cfg.Username, SecretKey: c.cfg.Password}))
+	}
+	client, err := rocketmq.NewPushConsumer(options...)
+	if err != nil {
+		return errors.New("mq: RocketMQ 消费配置无效")
+	}
+	if err := client.Subscribe(c.cfg.Topic, consumer.MessageSelector{}, func(_ context.Context, messages ...*primitive.MessageExt) (consumer.ConsumeResult, error) {
+		for _, msg := range messages {
+			message := Message{ID: msg.GetKeys(), Body: msg.Body}
+			if c.validate(message) != nil {
+				return consumer.ConsumeRetryLater, nil
+			}
+			handlerCtx, cancel := context.WithTimeout(ctx, c.timeout)
+			err := handler(handlerCtx, message)
+			cancel()
+			if err != nil {
+				return consumer.ConsumeRetryLater, nil
+			}
+		}
+		return consumer.ConsumeSuccess, nil
+	}); err != nil {
+		return errors.New("mq: RocketMQ 订阅失败")
+	}
+	c.mu.Lock()
+	if c.closed {
+		c.mu.Unlock()
+		return errors.New("mq: 已关闭")
+	}
+	c.consumer = client
+	c.mu.Unlock()
+	defer func() {
+		c.mu.Lock()
+		defer c.mu.Unlock()
+		if c.consumer == client {
+			_ = client.Shutdown()
+			c.consumer = nil
+		}
+	}()
+	if err := client.Start(); err != nil {
+		return errors.New("mq: RocketMQ 消费启动失败")
+	}
+	<-ctx.Done()
+	return ctx.Err()
+}
+
+// Close 释放客户端；调用方先取消并等待消费，避免与 SDK 回调争用资源。
+func (c *Client) Close() error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.closed {
+		return nil
+	}
+	c.closed = true
+	if c.consumer != nil {
+		_ = c.consumer.Shutdown()
+		c.consumer = nil
+	}
+	return c.producer.Shutdown()
+}

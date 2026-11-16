@@ -1,3 +1,4 @@
+import { isServerOption } from "../../.harness/tooling/server-options.ts"
 import { readFile } from "node:fs/promises"
 import path from "node:path"
 import { inspectChineseComments } from "../../.harness/tooling/comment-policy.ts"
@@ -101,6 +102,12 @@ export function inspectInitializationCatalog(raw: unknown): string[] {
         if (values.has(option.value)) errors.push(`初始化题目 ${field} 选项值重复`)
         values.add(option.value)
       }
+      if (
+        group === "basic" &&
+        isServerOption(field) &&
+        (typeof question.defaultValue !== "string" || !values.has(question.defaultValue))
+      )
+        errors.push(`初始化题目 ${field} 默认值必须属于选项`)
       if (
         group === "basic" &&
         field === "projectType" &&

@@ -1,3 +1,4 @@
+import { seedGoInfrastructure } from "./server-infrastructure-support.ts"
 import { execFile } from "node:child_process"
 import { randomBytes } from "node:crypto"
 import { setTimeout } from "node:timers/promises"
@@ -121,6 +122,7 @@ async function serverFixture(types = ["web", "extension", "server"]) {
     { recursive: true }
   )
   await rm(path.join(result.root, "example_server"), { recursive: true })
+  await seedGoInfrastructure(result.root)
   await generateGoServer(result.root, "example_server", "example_server")
   await writeFile(
     path.join(result.root, "example_server/configs/config-prod.yaml"),
@@ -534,6 +536,7 @@ process.stdout.write(JSON.stringify(result));`
     // 删除结构哨兵，由真正的服务生成器建立所有文件。
     const { rm } = await import("node:fs/promises")
     await rm(path.join(root, "example_server"), { recursive: true })
+    await seedGoInfrastructure(root)
     await generateGoServer(root, "example_server", "example_server")
     await release(root, pnpm, ["--platform=windows/amd64"])
     const entries = await inspectZip(root, path.join(root, "release/server.zip"))

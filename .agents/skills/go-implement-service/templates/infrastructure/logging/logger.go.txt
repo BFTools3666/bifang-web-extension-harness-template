@@ -1,0 +1,108 @@
+// Package logger 提供显式输出选择及资源回收，不复用全局 Logger 状态。
+package logger
+
+import (
+	"errors"
+	"github.com/sirupsen/logrus"
+	"gopkg.in/natefinch/lumberjack.v2"
+	"io"
+	"os"
+	"path/filepath"
+	"project_id/internal/config"
+)
+
+// ownedOutput 只关闭本实例创建的文件，绝不关闭进程标准输出。
+type ownedOutput struct {
+	io.Writer
+	files []*lumberjack.Logger
+}
+
+// Close 对称关闭全部轮转日志文件。
+func (o *ownedOutput) Close() error {
+	var result error
+	for _, file := range o.files {
+		result = errors.Join(result, file.Close())
+	}
+	return result
+}
+
+// errorHook 复用相同格式单独记录错误日志。
+type errorHook struct{ writer io.Writer }
+
+// Levels 限定独立错误文件的级别。
+func (h *errorHook) Levels() []logrus.Level {
+	return []logrus.Level{logrus.ErrorLevel, logrus.FatalLevel, logrus.PanicLevel}
+}
+
+// Fire 只写序列化条目，不额外记录请求正文或凭据。
+func (h *errorHook) Fire(entry *logrus.Entry) error {
+	line, err := entry.String()
+	if err != nil {
+		return err
+	}
+	_, err = io.WriteString(h.writer, line)
+	return err
+}
+
+// rotation 先验证文件可写，不能吞掉权限失败后静默切换输出。
+func rotation(path string, cfg config.Log) (*lumberjack.Logger, error) {
+	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
+		return nil, errors.New("logger: 无法创建日志目录")
+	}
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
+	if err != nil {
+		return nil, errors.New("logger: 日志文件不可写")
+	}
+	if err := file.Close(); err != nil {
+		return nil, errors.New("logger: 日志文件关闭失败")
+	}
+	return &lumberjack.Logger{Filename: path, MaxSize: cfg.MaxSize, MaxAge: cfg.MaxAge, MaxBackups: cfg.MaxBackups, Compress: cfg.Compress}, nil
+}
+
+// Setup 按确认配置创建命令行、文件或双输出；失败明确阻止启动。
+func Setup(cfg config.Log) (*logrus.Logger, error) {
+	logger := logrus.New()
+	level, err := logrus.ParseLevel(cfg.Level)
+	if err != nil {
+		return nil, errors.New("logger: 日志级别无效")
+	}
+	logger.SetLevel(level)
+	if cfg.Format == "json" {
+		logger.SetFormatter(&logrus.JSONFormatter{})
+	} else {
+		logger.SetFormatter(&logrus.TextFormatter{FullTimestamp: true})
+	}
+	output := &ownedOutput{Writer: os.Stdout}
+	if cfg.Output != "" {
+		file, err := rotation(cfg.Output, cfg)
+		if err != nil {
+			return nil, err
+		}
+		output.files = append(output.files, file)
+		output.Writer = file
+		if cfg.Console {
+			output.Writer = io.MultiWriter(os.Stdout, file)
+		}
+	}
+	if cfg.ErrorOutput != "" {
+		file, err := rotation(cfg.ErrorOutput, cfg)
+		if err != nil {
+			_ = output.Close()
+			return nil, err
+		}
+		output.files = append(output.files, file)
+		logger.AddHook(&errorHook{writer: file})
+	}
+	logger.SetOutput(output)
+	return logger, nil
+}
+
+// Close 仅释放本模块拥有的输出。
+func Close(logger *logrus.Logger) {
+	if logger == nil {
+		return
+	}
+	if output, ok := logger.Out.(*ownedOutput); ok {
+		_ = output.Close()
+	}
+}

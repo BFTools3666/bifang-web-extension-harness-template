@@ -9,7 +9,7 @@ description: 在 Workspace 的 _server 成员中实施 Go HTTP 服务与业务�
 
 用户系统的固定归属见 [ACCOUNT_OWNERSHIP.md](../../../docs/ACCOUNT_OWNERSHIP.md)。首次 install-users 同时装配本地 assets/team-baseline：八表 RBAC、归属嵌入模型、事务内授权、成员/角色版本、邀请、REST 命令和 GraphQL 查询。所有成员含 owner 都经过角色权限链；前端只判断有效 code。默认 SQLite 的锁合同不能直接外推到其他数据库。原始上游快照保持不变。
 
-先读根 docs/GO_SERVICE.md 与 .harness/workspace.json；服务成员目录是 Go 命令的 cwd，根拥有唯一策略与 PRD，Git 可选且启用时仅归根管理。遵循 cmd → bootstrap → api/v1 → service → repository → database；service 不依赖 gin.Context，handler 只解码、调用和响应。
+先读根 docs/GO_SERVICE.md 与 .harness/workspace.json，消费 service.options 的已确认选型及服务 INFRASTRUCTURE.md；创建器已按 templates/infrastructure 装配所选代码、配置与生命周期，继续接入真实消费者。MongoDB 使用独立仓储而非 GORM，不套用 GORM 专属领域模板；外部地址与凭据按接入事件补齐，不复问已确认选择。模板编译不证明外部联通；服务成员目录是 Go 命令的 cwd，根拥有唯一策略与 PRD，Git 可选且启用时仅归根管理。遵循 cmd → bootstrap → api/v1 → service → repository → database；service 不依赖 gin.Context，handler 只解码、调用和响应。
 
 [上游快照](assets/UPSTREAM.json) 固定来源与逐文件摘要，[服务基础资产](assets/go-service/README.md) 仅用于工程创建器。维护时按现有功能增量修改，不覆盖产品文件；[账号条件资产](assets/go-service-user-api/README.md) 和 [GraphQL 条件资产](assets/go-service-graphql/README.md) 只作为受校准的参考，禁止照搬其中初始化开关、Mock 或独立生命周期。
 

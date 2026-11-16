@@ -1,3 +1,4 @@
+import { SERVER_OPTIONS, isServerOption } from "./server-options.ts"
 import { readFile } from "node:fs/promises"
 import path from "node:path"
 import { createHash } from "node:crypto"
@@ -214,6 +215,10 @@ function creationArguments(identity: PromptedIdentity, logoPath: string): string
     const option = key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)
     argv.push(`--${option}=${identity[key]}`)
   }
+  if (identity.serverOptions) {
+    for (const [field, option] of Object.entries(SERVER_OPTIONS))
+      argv.push(`--${option}=${identity.serverOptions[field as keyof typeof SERVER_OPTIONS]}`)
+  }
   if (identity.policyMode === "custom") {
     for (const [key, option] of Object.entries(POLICY_OPTIONS)) {
       argv.push(`--${option}=${identity.agentPolicy[key as keyof typeof POLICY_OPTIONS]}`)
@@ -311,13 +316,14 @@ export async function inspectCreationForm(
       if (
         !input.scope &&
         !selection &&
-        [
-          "serverMode",
-          "apiContract",
-          "developmentBaseUrl",
-          "testBaseUrl",
-          "releaseBaseUrl"
-        ].includes(error.field)
+        (isServerOption(error.field) ||
+          [
+            "serverMode",
+            "apiContract",
+            "developmentBaseUrl",
+            "testBaseUrl",
+            "releaseBaseUrl"
+          ].includes(error.field))
       )
         return { phase: "needs-scope", analysisRevision }
       if (error.field === "englishName" && input.values.englishName === undefined)

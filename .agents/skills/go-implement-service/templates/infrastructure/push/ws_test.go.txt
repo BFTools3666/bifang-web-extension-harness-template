@@ -1,0 +1,58 @@
+package push
+
+import (
+	"context"
+	"github.com/coder/websocket"
+	"net/http"
+	"net/http/httptest"
+	"project_id/internal/config"
+	"strings"
+	"testing"
+	"time"
+)
+
+// TestPushWSTransport 验证真实升级后的双向数据以及关闭回收。
+func TestPushWSTransport(t *testing.T) {
+	hub, err := New(context.Background(), config.Push{Buffer: 2, MaxClients: 2, MaxBytes: 64})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer hub.Close()
+	received := make(chan string, 1)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hub.ServeWS(w, r, "authorized", func(ctx context.Context, payload []byte) error { received <- string(payload); return nil })
+	}))
+	defer server.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	conn, _, err := websocket.Dial(ctx, "ws"+strings.TrimPrefix(server.URL, "http"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.CloseNow()
+	if err := conn.Write(ctx, websocket.MessageBinary, []byte("request")); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case value := <-received:
+		if value != "request" {
+			t.Fatal(value)
+		}
+	case <-ctx.Done():
+		t.Fatal(ctx.Err())
+	}
+	if hub.Publish(ctx, "other", []byte("forbidden")) != nil {
+		t.Fatal("other scope")
+	}
+	if hub.Publish(ctx, "authorized", []byte("response")) != nil {
+		t.Fatal("publish")
+	}
+	_, payload, err := conn.Read(ctx)
+	if err != nil || string(payload) != "response" {
+		t.Fatal(string(payload), err)
+	}
+	_ = hub.Close()
+	if _, _, err := conn.Read(ctx); err == nil {
+		t.Fatal("expected close")
+	}
+}

@@ -1,0 +1,96 @@
+// Package storage 提供按已授权组织分区的对象存取；不公开匿名上传路由或桶 ACL。
+package storage
+
+import (
+	"context"
+	"errors"
+	"io"
+	"project_id/internal/config"
+	"strings"
+	"time"
+	"unicode"
+)
+
+// ErrSize 表示上传或下载超过当前服务明确的大小上限。
+var ErrSize = errors.New("storage: 对象超过上限")
+
+// limits 由具体 SDK Store 嵌入，统一持有键分区、体积和超时约束。
+type limits struct {
+	prefix   string
+	maxBytes int64
+	timeout  time.Duration
+}
+
+// newLimits 消费统一配置，不从外部输入猜测桶或凭据。
+func newLimits(cfg config.Storage) limits {
+	return limits{prefix: cfg.Prefix, maxBytes: cfg.MaxBytes, timeout: cfg.Timeout}
+}
+
+// objectKey 把调用方已经授权的组织与相对键组合，拒绝路径逃逸及控制字符。
+func (s limits) objectKey(scope, key string) (string, error) {
+	if scope == "" || strings.ContainsAny(scope, "/\\") || scope == "." || scope == ".." || key == "" || len(key) > 1024 || strings.HasPrefix(key, "/") || strings.Contains(key, "\\") {
+		return "", errors.New("storage: 作用域或对象键无效")
+	}
+	for _, part := range strings.Split(key, "/") {
+		if part == "" || part == "." || part == ".." {
+			return "", errors.New("storage: 对象键无效")
+		}
+	}
+	if strings.IndexFunc(scope+key, unicode.IsControl) >= 0 {
+		return "", errors.New("storage: 对象键无效")
+	}
+	return s.prefix + scope + "/" + key, nil
+}
+
+// upload 在任何远端写入前做有界读取，超限时不创建部分对象。
+func (s limits) upload(ctx context.Context, body io.Reader) ([]byte, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if body == nil {
+		return nil, errors.New("storage: 缺少正文")
+	}
+	data, err := io.ReadAll(io.LimitReader(body, s.maxBytes+1))
+	if err != nil {
+		return nil, errors.New("storage: 上传读取失败")
+	}
+	if int64(len(data)) > s.maxBytes {
+		return nil, ErrSize
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	return data, nil
+}
+
+// boundedBody 让下载拥有取消函数，读取最多上限字节并探测溢出。
+type boundedBody struct {
+	io.ReadCloser
+	remaining int64
+	cancel    context.CancelFunc
+}
+
+// Read 不把超限字节返回调用方，超限时立即释放响应。
+func (b *boundedBody) Read(target []byte) (int, error) {
+	if len(target) == 0 {
+		return 0, nil
+	}
+	if b.remaining == 0 {
+		var extra [1]byte
+		n, err := b.ReadCloser.Read(extra[:])
+		if n > 0 {
+			_ = b.Close()
+			return 0, ErrSize
+		}
+		return 0, err
+	}
+	if int64(len(target)) > b.remaining {
+		target = target[:b.remaining]
+	}
+	n, err := b.ReadCloser.Read(target)
+	b.remaining -= int64(n)
+	return n, err
+}
+
+// Close 释放 SDK 响应和操作级超时，不关闭其他请求资源。
+func (b *boundedBody) Close() error { b.cancel(); return b.ReadCloser.Close() }

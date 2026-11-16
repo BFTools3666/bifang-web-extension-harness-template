@@ -1,3 +1,4 @@
+import { resolveServerOptions, type ServerOptions } from "./server-options.ts"
 import { appendFile, cp, mkdir, readFile, readdir, rm } from "node:fs/promises"
 import path from "node:path"
 import { validateProjectId } from "./initialization-input.ts"
@@ -34,6 +35,7 @@ export interface WorkspaceConfig {
     mode: "existing" | "create" | "none"
     developmentBaseUrl: string
     apiContract?: string
+    options?: ServerOptions
   }
 }
 
@@ -49,6 +51,7 @@ export function createWorkspaceConfig(options: InitOptions): WorkspaceConfig {
     throw new Error("Workspace 成员必须非空、唯一且属于 web/extension/server")
   }
   const mode = parseServerMode(options.serverMode)
+  resolveServerOptions(mode, options.serverOptions ?? {})
   if (mode !== "create" && selected.includes("server"))
     throw new Error("仅自建服务时可以创建 server 成员")
   if (mode !== "existing" && options.apiContract)
@@ -80,6 +83,9 @@ export function createWorkspaceConfig(options: InitOptions): WorkspaceConfig {
     members: members.map((type) => ({ type, directory: `${options.id}_${type}` })),
     service: {
       mode,
+      ...(mode === "create"
+        ? { options: resolveServerOptions(mode, options.serverOptions ?? {}) }
+        : {}),
       developmentBaseUrl: mode === "create" ? "http://127.0.0.1:8080" : urls.developmentBaseUrl,
       ...(options.apiContract ? { apiContract: "docs/api/source-contract.txt" } : {})
     }
@@ -164,7 +170,8 @@ export async function initializeWorkspace(
     await rm(path.join(memberRoot, "docs/requirements"), { recursive: true, force: true })
   }
   const server = workspace.members.find((item) => item.type === "server")
-  if (server) await generateGoServer(root, server.directory, server.directory)
+  if (server)
+    await generateGoServer(root, server.directory, server.directory, workspace.service.options)
   const runtimes = new Map<string, string>()
   for (const name of ["workspace.mjs", "release.mjs", "archive.mjs"])
     runtimes.set(name, await readFile(new URL(`../runtime/${name}`, import.meta.url), "utf8"))
@@ -256,7 +263,7 @@ export async function initializeWorkspace(
   if (contract !== undefined)
     await writeNew(path.join(root, "docs/api/source-contract.txt"), contract)
   if (server && options.skipInstall !== true)
-    await commandRunner("go", ["mod", "download"], path.join(root, server.directory))
+    await commandRunner("go", ["mod", "tidy"], path.join(root, server.directory))
   await commandRunner(
     "node",
     [".harness/runtime/workspace.mjs", "validate", "--structure-only"],

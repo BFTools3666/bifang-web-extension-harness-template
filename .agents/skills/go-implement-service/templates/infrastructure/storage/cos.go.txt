@@ -1,0 +1,99 @@
+package storage
+
+import (
+	"bytes"
+	"context"
+	"errors"
+	cos "github.com/tencentyun/cos-go-sdk-v5"
+	"io"
+	"net/http"
+	"net/url"
+	"project_id/internal/config"
+)
+
+// Store 使用腾讯云官方 SDK；Endpoint 必须是完整的目标桶域名。
+type Store struct {
+	limits
+	client    *cos.Client
+	transport *http.Transport
+}
+
+// New 初始化独立连接池和可选 STS 令牌，不创建桶或改变权限。
+func New(ctx context.Context, cfg config.Storage) (*Store, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	endpoint, err := url.Parse(cfg.Endpoint)
+	if err != nil {
+		return nil, errors.New("storage: COS endpoint 无效")
+	}
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	client := cos.NewClient(&cos.BaseURL{BucketURL: endpoint}, &http.Client{Timeout: cfg.Timeout, Transport: &cos.AuthorizationTransport{SecretID: cfg.AccessKey, SecretKey: cfg.SecretKey, SessionToken: cfg.SessionToken, Transport: transport}})
+	return &Store{limits: newLimits(cfg), client: client, transport: transport}, nil
+}
+
+// Put 上传大小已校验的组织对象，不暴露签名凭据。
+func (s *Store) Put(ctx context.Context, scope, key string, body io.Reader) error {
+	name, err := s.objectKey(scope, key)
+	if err != nil {
+		return err
+	}
+	data, err := s.upload(ctx, body)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+	response, err := s.client.Object.Put(ctx, name, bytes.NewReader(data), nil)
+	if response != nil && response.Body != nil {
+		_ = response.Body.Close()
+	}
+	if err != nil {
+		return errors.New("storage: COS 上传失败，结果可能未知")
+	}
+	return nil
+}
+
+// Get 返回必须关闭的下载流，并限制未知长度响应。
+func (s *Store) Get(ctx context.Context, scope, key string) (io.ReadCloser, error) {
+	name, err := s.objectKey(scope, key)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	response, err := s.client.Object.Get(ctx, name, nil)
+	if err != nil {
+		cancel()
+		if response != nil && response.Body != nil {
+			_ = response.Body.Close()
+		}
+		return nil, errors.New("storage: COS 下载失败")
+	}
+	if response.ContentLength > s.maxBytes {
+		cancel()
+		_ = response.Body.Close()
+		return nil, ErrSize
+	}
+	return &boundedBody{ReadCloser: response.Body, remaining: s.maxBytes, cancel: cancel}, nil
+}
+
+// Delete 只删除当前组织精确键。
+func (s *Store) Delete(ctx context.Context, scope, key string) error {
+	name, err := s.objectKey(scope, key)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+	response, err := s.client.Object.Delete(ctx, name)
+	if response != nil && response.Body != nil {
+		_ = response.Body.Close()
+	}
+	if err != nil {
+		return errors.New("storage: COS 删除失败，结果可能未知")
+	}
+	return nil
+}
+
+// Close 释放连接池。
+func (s *Store) Close() error { s.transport.CloseIdleConnections(); return nil }

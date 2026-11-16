@@ -1,3 +1,4 @@
+import { DEFAULT_SERVER_SELECTION } from "./server-options-support.ts"
 import { readFile } from "node:fs/promises"
 import path from "node:path"
 import { describe, expect, test } from "vitest"
@@ -134,6 +135,7 @@ describe("Agent policy contract", () => {
           targetRoot: path.join(repositoryRoot, "..", "simple-web"),
           projectType: "web",
           serverMode: "create",
+          ...DEFAULT_SERVER_SELECTION,
           name: "Simple Web",
           id: "simple-web",
           policyMode: "预设",

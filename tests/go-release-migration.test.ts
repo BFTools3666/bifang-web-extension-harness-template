@@ -1,3 +1,4 @@
+import { seedGoInfrastructure } from "./server-infrastructure-support.ts"
 import { execFile } from "node:child_process"
 import { promisify } from "node:util"
 import {
@@ -61,12 +62,14 @@ async function legacyFixture() {
     path.join(target, ".agents/skills/go-implement-service/assets/go-service"),
     { recursive: true }
   )
+  await seedGoInfrastructure(target)
   await generateGoServer(target, "legacy_server", "legacy_server")
   const server = path.join(target, "legacy_server")
   for (const file of [
     "internal/config/environment.go",
     "internal/config/release.go",
     "internal/config/release_test.go",
+    "internal/config/infrastructure_test.go",
     "cmd/release-config",
     "configs/config-prod.yaml"
   ])
@@ -84,7 +87,12 @@ async function legacyFixture() {
     .replaceAll("project_id", "legacy_server")
   legacy = legacy.replace(
     "type Config struct {",
-    'type Config struct {\n Business struct { Mode string `mapstructure:"mode"` } `mapstructure:"business"`'
+    'type Config struct {\n Infrastructure Infrastructure `mapstructure:"infrastructure"`\n Business struct { Mode string `mapstructure:"mode"` } `mapstructure:"business"`'
+  )
+  // 旧发布协议与当前基础设施装配可以并存，迁移必须同样保留这些非发布配置。
+  legacy = legacy.replace(
+    "type Log struct {",
+    'type Log struct {\n Console bool `mapstructure:"console"`'
   )
   legacy = legacy.replace(
     "func (c *Config) Validate() error {",

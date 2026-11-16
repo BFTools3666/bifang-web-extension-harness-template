@@ -1,0 +1,67 @@
+package push
+
+import (
+	"context"
+	"github.com/coder/websocket"
+	"net/http"
+	"time"
+)
+
+// ServeWS 在业务鉴权后升级连接，默认只允许同源；不从客户端消息决定订阅作用域。
+// 接收回调同步执行，业务负责授权和解码，错误即关闭连接。
+func (h *Hub) ServeWS(w http.ResponseWriter, r *http.Request, scope string, receive func(context.Context, []byte) error) {
+	events, cancel, err := h.subscribe(scope)
+	if err != nil {
+		http.Error(w, "subscription rejected", http.StatusForbidden)
+		return
+	}
+	defer cancel()
+	conn, err := websocket.Accept(w, r, nil)
+	if err != nil {
+		return
+	}
+	defer conn.CloseNow()
+	conn.SetReadLimit(int64(h.maxBytes))
+	ctx, stop := context.WithCancel(r.Context())
+	defer stop()
+	readDone := make(chan struct{})
+	go func() {
+		defer close(readDone)
+		defer stop()
+		for {
+			_, payload, err := conn.Read(ctx)
+			if err != nil {
+				return
+			}
+			if receive == nil || receive(ctx, payload) != nil {
+				return
+			}
+		}
+	}()
+	defer func() { stop(); _ = conn.CloseNow(); <-readDone }()
+	heartbeat := time.NewTicker(20 * time.Second)
+	defer heartbeat.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case payload, open := <-events:
+			if !open {
+				return
+			}
+			writeCtx, finish := context.WithTimeout(ctx, 10*time.Second)
+			err := conn.Write(writeCtx, websocket.MessageBinary, payload)
+			finish()
+			if err != nil {
+				return
+			}
+		case <-heartbeat.C:
+			pingCtx, finish := context.WithTimeout(ctx, 10*time.Second)
+			err := conn.Ping(pingCtx)
+			finish()
+			if err != nil {
+				return
+			}
+		}
+	}
+}

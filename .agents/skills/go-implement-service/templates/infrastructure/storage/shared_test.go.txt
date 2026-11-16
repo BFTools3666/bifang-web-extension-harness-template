@@ -1,0 +1,38 @@
+package storage
+
+import (
+	"context"
+	"errors"
+	"io"
+	"strings"
+	"testing"
+)
+
+// TestStorageBoundaries 验证分区键、上传写入前限额及未知长度下载限额。
+func TestStorageBoundaries(t *testing.T) {
+	limits := limits{prefix: "app/", maxBytes: 4}
+	key, err := limits.objectKey("org-a", "folder/file")
+	if err != nil || key != "app/org-a/folder/file" {
+		t.Fatal("partition")
+	}
+	for _, key := range []string{"", "../other", "/absolute", "a//b", "a\\b", "a\nb"} {
+		if _, err := limits.objectKey("org", key); err == nil {
+			t.Fatal("unsafe", key)
+		}
+	}
+	if _, err := limits.objectKey("../other", "file"); err == nil {
+		t.Fatal("scope")
+	}
+	if _, err := limits.upload(context.Background(), strings.NewReader("large")); !errors.Is(err, ErrSize) {
+		t.Fatal("upload limit")
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	body := &boundedBody{ReadCloser: io.NopCloser(strings.NewReader("large")), remaining: 4, cancel: cancel}
+	bytes, err := io.ReadAll(body)
+	if !errors.Is(err, ErrSize) || string(bytes) != "larg" {
+		t.Fatal("download limit")
+	}
+	if ctx.Err() == nil {
+		t.Fatal("body must cancel")
+	}
+}

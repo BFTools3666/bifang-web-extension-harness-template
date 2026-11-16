@@ -1,3 +1,4 @@
+import { DEFAULT_SERVER_SELECTION } from "./server-options-support.ts"
 import path from "node:path"
 import { expect, test } from "vitest"
 import { collectPromptedIdentity } from "../.harness/tooling/prompts.ts"
@@ -22,6 +23,7 @@ test("已给口头需求和工程信息直接进入分析交接", async () => {
   const values = {
     projectType: "web",
     serverMode: "create",
+    ...DEFAULT_SERVER_SELECTION,
     name: "Notes",
     targetRoot: parent,
     requirementsText: "为组织成员记录笔记，通过切换组织查看各自的内容。"
@@ -109,7 +111,14 @@ test.each([undefined, "fixed-name"])("路径题可主动修订已答名称，显
   const parent = await temporaryDirectory("revised-name-")
   const fields: string[] = []
   const result = await collectPromptedIdentity(
-    { projectType: "web", serverMode: "create", name: "Notes", id, requirementsFile: "" },
+    {
+      projectType: "web",
+      serverMode: "create",
+      ...DEFAULT_SERVER_SELECTION,
+      name: "Notes",
+      id,
+      requirementsFile: ""
+    },
     async (_question, context) => {
       fields.push(context?.field ?? "")
       return JSON.stringify({ name: "Bookmark Manager", targetRoot: parent })
@@ -134,7 +143,13 @@ test("后续宿主修订只追加扩展所需说明", async () => {
     "在浏览器中记录笔记"
   ]
   const result = await collectPromptedIdentity(
-    { projectType: "web", serverMode: "create", name: "Notes", requirementsFile: "" },
+    {
+      projectType: "web",
+      serverMode: "create",
+      ...DEFAULT_SERVER_SELECTION,
+      name: "Notes",
+      requirementsFile: ""
+    },
     async (question, context) => {
       fields.push(context?.field ?? "")
       questions.push(question)

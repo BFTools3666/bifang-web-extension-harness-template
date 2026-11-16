@@ -1,3 +1,4 @@
+import { DEFAULT_SERVER_SELECTION } from "./server-options-support.ts"
 import { lstat } from "node:fs/promises"
 import path from "node:path"
 import { describe, expect, test } from "vitest"
@@ -13,7 +14,19 @@ import { collectPromptedIdentity as collectIdentity } from "../.harness/tooling/
 
 /** 本组测试聚焦原有字段；服务来源在 Workspace 表单用例独立覆盖。 */
 const collectPromptedIdentity: typeof collectIdentity = (defaults, ask, validateTarget) =>
-  collectIdentity({ serverMode: "create", ...defaults }, ask, validateTarget)
+  collectIdentity(
+    {
+      serverMode: "create",
+      ...(defaults.serverMode && defaults.serverMode !== "create" ? {} : DEFAULT_SERVER_SELECTION),
+      ...Object.fromEntries(
+        Object.entries(defaults).filter(
+          ([key, value]) => value !== undefined || !Object.hasOwn(DEFAULT_SERVER_SELECTION, key)
+        )
+      )
+    },
+    ask,
+    validateTarget
+  )
 import { runInstantiateCli } from "../scripts/instantiate.ts"
 import {
   options,
@@ -400,6 +413,7 @@ test.each([
     name: "Notes",
     targetRoot: await temporaryDirectory("server-after-requirements-"),
     serverMode,
+    ...(serverMode === "create" ? DEFAULT_SERVER_SELECTION : {}),
     ...(serverMode === "existing" && field !== "developmentBaseUrl"
       ? { developmentBaseUrl: "http://localhost:8080" }
       : {}),
@@ -438,7 +452,7 @@ test("非法需求正文先修正再进入服务阶段", async () => {
 /** 终端按共享题序先收集需求，再明确选择服务，不承担自然语言推断。 */
 test("CLI 先问需求再问服务来源", async () => {
   const fields: string[] = []
-  const answers = ["text:组织成员共享笔记。", "2"]
+  const answers = ["text:组织成员共享笔记。", "2", "1", "1", "1", "1", "1", "1"]
   const result = await collectIdentity(
     {
       projectType: "web",
@@ -452,7 +466,16 @@ test("CLI 先问需求再问服务来源", async () => {
       return answer
     }
   )
-  expect(fields).toEqual(["requirementsFile", "serverMode"])
+  expect(fields).toEqual([
+    "requirementsFile",
+    "serverMode",
+    "serverDatabase",
+    "serverCache",
+    "serverPush",
+    "serverMq",
+    "serverLog",
+    "serverStorage"
+  ])
   expect(result.requirementsText).toBe("组织成员共享笔记。")
   expect(result.serverMode).toBe("create")
 })

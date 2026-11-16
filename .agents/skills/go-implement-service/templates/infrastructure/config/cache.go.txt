@@ -1,0 +1,33 @@
+package config
+
+import (
+	"errors"
+	"strings"
+	"time"
+)
+
+// Cache 只包含当前装配缓存使用的参数，秘密经 APP_INFRASTRUCTURE_CACHE_URL 注入。
+type Cache struct {
+	Driver   string        `mapstructure:"driver"`
+	URL      string        `mapstructure:"url"`
+	Prefix   string        `mapstructure:"prefix"`
+	Capacity int           `mapstructure:"capacity"`
+	MaxBytes int           `mapstructure:"max_bytes"`
+	Timeout  time.Duration `mapstructure:"timeout"`
+}
+
+// validate 校验容量、键前缀及已选外部连接，绝不静默回退到内存。
+func (c Cache) validate(prod bool) error {
+	if c.Capacity <= 0 || c.Capacity > 100000 || c.MaxBytes <= 0 || c.MaxBytes > 1<<20 || c.Timeout <= 0 || c.Timeout > time.Minute || c.Prefix == "" {
+		return errors.New("config: 缓存容量、前缀或超时无效")
+	}
+	if c.Driver == "redis" {
+		if !strings.HasPrefix(c.URL, "redis://") && !strings.HasPrefix(c.URL, "rediss://") {
+			return errors.New("config: 必须配置 Redis URL")
+		}
+		if prod && !strings.HasPrefix(c.URL, "rediss://") {
+			return errors.New("config: 生产 Redis 必须使用 TLS")
+		}
+	}
+	return nil
+}

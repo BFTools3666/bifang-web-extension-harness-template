@@ -54,6 +54,170 @@
         }
       ]
     },
+    "serverDatabase": {
+      "title": "服务端数据库",
+      "question": "服务端使用哪种数据库？",
+      "hint": "仅自建 Go 服务询问；输入编号或英文名称，回车采用默认值。已有明确选择直接复用；选型不表示已接通，外部服务参数在下游接入时补齐。",
+      "agentHint": "请选择一项，也可明确接受默认值；已提供的选择直接沿用，不收集凭据。",
+      "defaultValue": "sqlite",
+      "options": [
+        {
+          "value": "sqlite",
+          "label": "1.SQLite（默认）",
+          "description": "本地文件数据库"
+        },
+        {
+          "value": "mysql",
+          "label": "2.MySQL",
+          "description": "关系型数据库"
+        },
+        {
+          "value": "postgres",
+          "label": "3.Postgres",
+          "description": "关系型数据库 PostgreSQL"
+        },
+        {
+          "value": "mongo",
+          "label": "4.MongoDB",
+          "description": "文档数据库，须使用独立仓储，不沿用 GORM"
+        }
+      ]
+    },
+    "serverCache": {
+      "title": "服务端缓存",
+      "question": "服务端使用哪种缓存？",
+      "hint": "仅自建 Go 服务询问；输入编号或英文名称，回车采用默认值。已有明确选择直接复用；选型不表示已接通，外部服务参数在下游接入时补齐。",
+      "agentHint": "请选择一项，也可明确接受默认值；已提供的选择直接沿用，不收集凭据。",
+      "defaultValue": "memory",
+      "options": [
+        {
+          "value": "memory",
+          "label": "1.Memory（默认）",
+          "description": "进程内存缓存，重启不保留，多实例不共享"
+        },
+        {
+          "value": "redis",
+          "label": "2.Redis",
+          "description": "外部共享缓存，接入时补充连接配置"
+        }
+      ]
+    },
+    "serverPush": {
+      "title": "服务端数据推送（可选）",
+      "question": "是否需要服务端推送数据？",
+      "hint": "仅自建 Go 服务询问；输入编号或英文名称，回车采用默认值。已有明确选择直接复用；选型不表示已接通，外部服务参数在下游接入时补齐。",
+      "agentHint": "请选择一项，也可明确接受默认值；已提供的选择直接沿用，不收集凭据。",
+      "defaultValue": "none",
+      "options": [
+        {
+          "value": "none",
+          "label": "1.不启用（默认）",
+          "description": "不装配推送能力"
+        },
+        {
+          "value": "ws",
+          "label": "2.WebSocket（WS）",
+          "description": "双向持续通信"
+        },
+        {
+          "value": "sse",
+          "label": "3.SSE",
+          "description": "服务端向客户端持续推送"
+        },
+        {
+          "value": "grpc",
+          "label": "4.gRPC Streaming",
+          "description": "按真实客户端契约使用流式 RPC"
+        }
+      ]
+    },
+    "serverMq": {
+      "title": "服务端 MQ（可选）",
+      "question": "是否需要消息队列？",
+      "hint": "仅自建 Go 服务询问；输入编号或英文名称，回车采用默认值。已有明确选择直接复用；选型不表示已接通，外部服务参数在下游接入时补齐。",
+      "agentHint": "请选择一项，也可明确接受默认值；已提供的选择直接沿用，不收集凭据。",
+      "defaultValue": "none",
+      "options": [
+        {
+          "value": "none",
+          "label": "1.不启用（默认）",
+          "description": "不装配消息队列"
+        },
+        {
+          "value": "rabbitmq",
+          "label": "2.RabbitMQ",
+          "description": "消息队列"
+        },
+        {
+          "value": "kafka",
+          "label": "3.Kafka",
+          "description": "事件流平台"
+        },
+        {
+          "value": "nats",
+          "label": "4.NATS JetStream",
+          "description": "持久消息与流"
+        },
+        {
+          "value": "rocketmq",
+          "label": "5.RocketMQ",
+          "description": "消息队列"
+        }
+      ]
+    },
+    "serverLog": {
+      "title": "服务端日志输出",
+      "question": "服务端日志输出到哪里？",
+      "hint": "仅自建 Go 服务询问；输入编号或英文名称，回车采用默认值。已有明确选择直接复用；选型不表示已接通，外部服务参数在下游接入时补齐。",
+      "agentHint": "请选择一项，也可明确接受默认值；已提供的选择直接沿用，不收集凭据。",
+      "defaultValue": "console",
+      "options": [
+        {
+          "value": "console",
+          "label": "1.命令行（默认）",
+          "description": "输出到标准输出或标准错误"
+        },
+        {
+          "value": "file",
+          "label": "2.文件",
+          "description": "文件日志与轮转"
+        },
+        {
+          "value": "both",
+          "label": "3.命令行和文件",
+          "description": "同时输出并轮转文件"
+        }
+      ]
+    },
+    "serverStorage": {
+      "title": "服务端 OSS 存储（可选）",
+      "question": "是否需要对象存储？",
+      "hint": "仅自建 Go 服务询问；输入编号或英文名称，回车采用默认值。已有明确选择直接复用；选型不表示已接通，外部服务参数在下游接入时补齐。",
+      "agentHint": "请选择一项，也可明确接受默认值；已提供的选择直接沿用，不收集凭据。",
+      "defaultValue": "none",
+      "options": [
+        {
+          "value": "none",
+          "label": "1.不启用（默认）",
+          "description": "不装配对象存储"
+        },
+        {
+          "value": "s3",
+          "label": "2.S3 兼容存储",
+          "description": "包括 AWS S3、MinIO 等兼容服务"
+        },
+        {
+          "value": "aliyun",
+          "label": "3.阿里云 OSS",
+          "description": "接入时补充地域、桶和凭据来源"
+        },
+        {
+          "value": "cos",
+          "label": "4.腾讯云 COS",
+          "description": "接入时补充地域、桶和凭据来源"
+        }
+      ]
+    },
     "apiContract": {
       "title": "接口文档（可选）",
       "question": "可以提供已有服务的接口文档。",

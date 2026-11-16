@@ -1,0 +1,96 @@
+package mq
+
+import (
+	"context"
+	"crypto/tls"
+	"errors"
+	"github.com/twmb/franz-go/pkg/kgo"
+	"github.com/twmb/franz-go/pkg/sasl/plain"
+	"project_id/internal/config"
+)
+
+// Client 关闭自动提交，只在业务成功后提交当前分区偏移。
+type Client struct {
+	guard
+	client *kgo.Client
+	topic  string
+}
+
+// New 仅连接已有集群，不自动创建主题；TLS 与 SASL 来自私有配置。
+func New(ctx context.Context, cfg config.MQ) (*Client, error) {
+	opts := []kgo.Opt{kgo.SeedBrokers(cfg.Brokers...), kgo.ConsumerGroup(cfg.Group), kgo.ConsumeTopics(cfg.Topic), kgo.DisableAutoCommit(), kgo.BlockRebalanceOnPoll(), kgo.FetchMaxBytes(int32(cfg.MaxBytes)), kgo.FetchMaxPartitionBytes(int32(cfg.MaxBytes)), kgo.ProducerBatchMaxBytes(int32(cfg.MaxBytes)), kgo.RecordRetries(0), kgo.DialTimeout(cfg.Timeout), kgo.RequestTimeoutOverhead(cfg.Timeout)}
+	if cfg.TLS {
+		opts = append(opts, kgo.DialTLSConfig(&tls.Config{MinVersion: tls.VersionTLS12}))
+	}
+	if cfg.Username != "" {
+		opts = append(opts, kgo.SASL(plain.Auth{User: cfg.Username, Pass: cfg.Password}.AsMechanism()))
+	}
+	client, err := kgo.NewClient(opts...)
+	if err != nil {
+		return nil, errors.New("mq: Kafka 配置无效")
+	}
+	if err := client.Ping(ctx); err != nil {
+		client.Close()
+		return nil, errors.New("mq: Kafka 连接失败")
+	}
+	return &Client{guard: guard{maxBytes: cfg.MaxBytes, timeout: cfg.Timeout}, client: client, topic: cfg.Topic}, nil
+}
+
+// Publish 同步确认单条记录，错误时不隐式业务重试。
+func (c *Client) Publish(ctx context.Context, message Message) error {
+	if err := c.validate(message); err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(ctx, c.timeout)
+	defer cancel()
+	if err := c.client.ProduceSync(ctx, &kgo.Record{Topic: c.topic, Key: []byte(message.ID), Value: message.Body}).FirstErr(); err != nil {
+		return errors.New("mq: Kafka 发布失败，结果可能未知")
+	}
+	return nil
+}
+
+// Consume 逐条提交成功记录；失败不越过当前消息继续提交后续偏移。
+func (c *Client) Consume(ctx context.Context, handler Handler) error {
+	if handler == nil {
+		return errors.New("mq: 缺少消费者")
+	}
+	if err := c.begin(); err != nil {
+		return err
+	}
+	defer c.consuming.Store(false)
+	// 任意消费退出都关闭此客户端，重建后从已提交偏移恢复，禁止再次消费越过失败记录。
+	defer c.client.Close()
+	for {
+		fetches := c.client.PollRecords(ctx, 1)
+		if err := ctx.Err(); err != nil {
+			c.client.AllowRebalance()
+			return err
+		}
+		if errs := fetches.Errors(); len(errs) != 0 {
+			c.client.AllowRebalance()
+			return errors.New("mq: Kafka 消费失败")
+		}
+		for _, record := range fetches.Records() {
+			message := Message{ID: string(record.Key), Body: record.Value}
+			if err := c.validate(message); err != nil {
+				c.client.AllowRebalance()
+				return err
+			}
+			if err := handler(ctx, message); err != nil {
+				c.client.AllowRebalance()
+				return err
+			}
+			commitCtx, cancel := context.WithTimeout(ctx, c.timeout)
+			err := c.client.CommitRecords(commitCtx, record)
+			cancel()
+			if err != nil {
+				c.client.AllowRebalance()
+				return errors.New("mq: Kafka 提交失败，可能重新投递")
+			}
+		}
+		c.client.AllowRebalance()
+	}
+}
+
+// Close 释放集群连接。
+func (c *Client) Close() error { c.client.Close(); return nil }

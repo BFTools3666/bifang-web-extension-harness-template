@@ -1,0 +1,127 @@
+package mq
+
+import (
+	"context"
+	"errors"
+	amqp "github.com/rabbitmq/amqp091-go"
+	"net"
+	"project_id/internal/config"
+	"time"
+)
+
+// Client 拥有独立发布通道；消费使用自己的通道，避免并发协议竞争。
+type Client struct {
+	guard
+	conn       *amqp.Connection
+	socket     net.Conn
+	channel    *amqp.Channel
+	queue      string
+	publishing chan struct{}
+}
+
+// New 连接现有 Broker 并检查队列存在，不隐式创建或改变拓扑。
+func New(ctx context.Context, cfg config.MQ) (*Client, error) {
+	dialer := &net.Dialer{Timeout: cfg.Timeout}
+	var socket net.Conn
+	conn, err := amqp.DialConfig(cfg.URL, amqp.Config{Dial: func(network, address string) (net.Conn, error) {
+		connection, err := dialer.DialContext(ctx, network, address)
+		if err != nil {
+			return nil, err
+		}
+		socket = connection
+		_ = connection.SetDeadline(time.Now().Add(cfg.Timeout))
+		return connection, nil
+	}})
+	if err != nil {
+		return nil, errors.New("mq: RabbitMQ 连接失败")
+	}
+	channel, err := conn.Channel()
+	if err != nil {
+		_ = conn.Close()
+		return nil, errors.New("mq: RabbitMQ 通道失败")
+	}
+	if _, err = channel.QueueDeclarePassive(cfg.Topic, true, false, false, false, nil); err != nil {
+		_ = conn.Close()
+		return nil, errors.New("mq: RabbitMQ 队列不存在或属性不符")
+	}
+	if err = channel.Confirm(false); err != nil {
+		_ = conn.Close()
+		return nil, errors.New("mq: RabbitMQ 无法启用发布确认")
+	}
+	_ = socket.SetDeadline(time.Time{})
+	return &Client{guard: guard{maxBytes: cfg.MaxBytes, timeout: cfg.Timeout}, conn: conn, socket: socket, channel: channel, queue: cfg.Topic, publishing: make(chan struct{}, 1)}, nil
+}
+
+// Publish 等待 Broker 持久确认；超时结果可能未知，调用方不能无条件重发。
+func (c *Client) Publish(ctx context.Context, message Message) error {
+	if err := c.validate(message); err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(ctx, c.timeout)
+	defer cancel()
+	select {
+	case c.publishing <- struct{}{}:
+		defer func() { <-c.publishing }()
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+	deadline, _ := ctx.Deadline()
+	_ = c.socket.SetWriteDeadline(deadline)
+	defer c.socket.SetWriteDeadline(time.Time{})
+	confirmation, err := c.channel.PublishWithDeferredConfirmWithContext(ctx, "", c.queue, false, false, amqp.Publishing{MessageId: message.ID, Body: message.Body, DeliveryMode: amqp.Persistent, ContentType: "application/octet-stream"})
+	if err != nil || confirmation == nil {
+		return errors.New("mq: RabbitMQ 发布失败，结果可能未知")
+	}
+	ok, err := confirmation.WaitContext(ctx)
+	if err != nil || !ok {
+		return errors.New("mq: RabbitMQ 未确认，结果可能未知")
+	}
+	return nil
+}
+
+// Consume 一次只处理一个未确认消息；失败退出并关闭通道，让 Broker 重新投递。
+func (c *Client) Consume(ctx context.Context, handler Handler) error {
+	if handler == nil {
+		return errors.New("mq: 缺少消费者")
+	}
+	if err := c.begin(); err != nil {
+		return err
+	}
+	defer c.consuming.Store(false)
+	channel, err := c.conn.Channel()
+	if err != nil {
+		return errors.New("mq: RabbitMQ 消费通道失败")
+	}
+	defer channel.Close()
+	if err := channel.Qos(1, 0, false); err != nil {
+		return errors.New("mq: RabbitMQ 消费限额失败")
+	}
+	deliveries, err := channel.ConsumeWithContext(ctx, c.queue, "", false, false, false, false, nil)
+	if err != nil {
+		return errors.New("mq: RabbitMQ 消费启动失败")
+	}
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case delivery, open := <-deliveries:
+			if !open {
+				return errors.New("mq: RabbitMQ 消费已断开")
+			}
+			message := Message{ID: delivery.MessageId, Body: delivery.Body}
+			if err := c.validate(message); err != nil {
+				_ = delivery.Nack(false, false)
+				return err
+			}
+			if err := handler(ctx, message); err != nil {
+				return err
+			}
+			if err := delivery.Ack(false); err != nil {
+				return errors.New("mq: RabbitMQ 确认失败，可能重新投递")
+			}
+		}
+	}
+}
+
+// Close 断开连接，调用方仍负责取消并等待 Consume 结束。
+func (c *Client) Close() error { return c.conn.Close() }

@@ -1,3 +1,9 @@
+/** 保存服务创建阶段的六项已确认选型。 */
+export type ServerOptions = Record<
+  "serverDatabase" | "serverCache" | "serverPush" | "serverMq" | "serverLog" | "serverStorage",
+  string
+>
+
 /** 约束与现有英文、简体中文 UI 对齐的浏览器身份语言。 */
 export type IdentityLocale = "en" | "zh_CN"
 
@@ -89,6 +95,8 @@ export interface InitOptions extends EnvironmentBaseUrls {
   workspaceMembers?: readonly (ProjectType | "server")[]
   /** 已有服务只接入，无服务时生成同一工作区内的 Go 服务。 */
   serverMode?: "existing" | "create" | "none"
+  /** 创建时确认的选型；实现和联通由下游按选型完成。 */
+  serverOptions?: ServerOptions
   /** 绑定用户提供的接口文档路径；地址不等同接口契约。 */
   apiContract?: string
   /** 冻结已核对的契约字节，只由事务内部传入。 */

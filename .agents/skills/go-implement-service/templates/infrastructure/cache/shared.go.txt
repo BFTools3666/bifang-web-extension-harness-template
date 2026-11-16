@@ -1,0 +1,10 @@
+// Package cache 提供有界缓存契约；未命中与故障分别返回。
+package cache
+
+import "errors"
+
+// ErrClosed 表示所属进程已关闭缓存资源。
+var ErrClosed = errors.New("cache: 已关闭")
+
+// ErrCapacity 表示单个值超过配置上限。
+var ErrCapacity = errors.New("cache: 值超过上限")

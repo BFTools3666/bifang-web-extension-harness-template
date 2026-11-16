@@ -55,3 +55,5 @@ pnpm exec tsx scripts/initialization-form.ts <absolute-input-json>
 工程成功后在下游继续 PRD 和原型；展示后等待用户明确确认，核验通过才进入前后端页面功能、相关业务测试和开发浏览器走查；CLI 的 `ENGINEERING_READY` 不等于首版完成。此工具随源专用创建能力一起从下游删除。
 
 用户修订需求、角色、宿主或服务来源时，先由需求分析更新受影响的流程、数据归属、权限、页面、操作依赖及验收，再同步 scope 和汇总。修订失效机制只证明输入已变，不能证明旧 scope 仍适用；不能仅改 values 就复用陈旧范围。最终只确认新的完整汇总一次，不重新启动整份问卷。
+
+自建服务六项选型同样由共享工具逐项返回，不能把题库默认填成用户答案。服务来源变化时同时清除 serverDatabase、serverCache、serverPush、serverMq、serverLog、serverStorage；修改选型使旧汇总确认失效。最终 argv 和 Workspace service.options 必须保留全部已确认值，参见[初始化表单](initialization-form.md#自建服务选项询问)。

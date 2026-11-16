@@ -1,0 +1,101 @@
+package storage
+
+import (
+	"bytes"
+	"context"
+	"errors"
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
+	"io"
+	"net/http"
+	"net/url"
+	"project_id/internal/config"
+)
+
+// Store 使用 S3 兼容 SDK，复用连接池，不自动建桶或扩大访问权限。
+type Store struct {
+	limits
+	client    *minio.Client
+	bucket    string
+	transport *http.Transport
+}
+
+// New 绑定现有桶；具体对象调用才执行网络操作。
+func New(ctx context.Context, cfg config.Storage) (*Store, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	endpoint, err := url.Parse(cfg.Endpoint)
+	if err != nil {
+		return nil, errors.New("storage: S3 endpoint 无效")
+	}
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	client, err := minio.New(endpoint.Host, &minio.Options{Creds: credentials.NewStaticV4(cfg.AccessKey, cfg.SecretKey, cfg.SessionToken), Secure: endpoint.Scheme == "https", Region: cfg.Region, Transport: transport})
+	if err != nil {
+		transport.CloseIdleConnections()
+		return nil, errors.New("storage: S3 配置无效")
+	}
+	return &Store{limits: newLimits(cfg), client: client, bucket: cfg.Bucket, transport: transport}, nil
+}
+
+// Put 完成大小检查后上传对象，不返回可公开访问的签名 URL。
+func (s *Store) Put(ctx context.Context, scope, key string, body io.Reader) error {
+	name, err := s.objectKey(scope, key)
+	if err != nil {
+		return err
+	}
+	data, err := s.upload(ctx, body)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+	_, err = s.client.PutObject(ctx, s.bucket, name, bytes.NewReader(data), int64(len(data)), minio.PutObjectOptions{ContentType: "application/octet-stream"})
+	if err != nil {
+		return errors.New("storage: S3 上传失败，结果可能未知")
+	}
+	return nil
+}
+
+// Get 验证对象大小并返回必须由调用方关闭的受限流。
+func (s *Store) Get(ctx context.Context, scope, key string) (io.ReadCloser, error) {
+	name, err := s.objectKey(scope, key)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	object, err := s.client.GetObject(ctx, s.bucket, name, minio.GetObjectOptions{})
+	if err != nil {
+		cancel()
+		return nil, errors.New("storage: S3 下载失败")
+	}
+	info, err := object.Stat()
+	if err != nil {
+		cancel()
+		_ = object.Close()
+		return nil, errors.New("storage: S3 对象不可读")
+	}
+	if info.Size > s.maxBytes {
+		cancel()
+		_ = object.Close()
+		return nil, ErrSize
+	}
+	return &boundedBody{ReadCloser: object, remaining: s.maxBytes, cancel: cancel}, nil
+}
+
+// Delete 仅删除当前组织的精确对象；结果未知时由业务读取恢复。
+func (s *Store) Delete(ctx context.Context, scope, key string) error {
+	name, err := s.objectKey(scope, key)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+	if s.client.RemoveObject(ctx, s.bucket, name, minio.RemoveObjectOptions{}) != nil {
+		return errors.New("storage: S3 删除失败，结果可能未知")
+	}
+	return nil
+}
+
+// Close 关闭空闲连接；业务持有的下载流仍必须对称关闭。
+func (s *Store) Close() error { s.transport.CloseIdleConnections(); return nil }

@@ -1,3 +1,4 @@
+import { SERVER_OPTIONS, resolveServerOptions } from "./server-options.ts"
 import { parseWorkspaceSelection, primaryFrontend, parseServerMode } from "./workspace-selection.ts"
 import { assertKnownOptions, parseArgs, readStringOption } from "./args.ts"
 import { parseIdentityI18n } from "./identity.ts"
@@ -19,6 +20,7 @@ import { isMainModule } from "./files.ts"
 export const INIT_OPTIONS = [
   "type",
   "server",
+  ...Object.values(SERVER_OPTIONS),
   "api-contract",
   "requirements-file",
   "requirements-text",
@@ -46,7 +48,7 @@ function usage(): string {
   return `Bifang Web Harness
 
 创建项目（目标必须位于本 Harness 仓库之外）：
-  pnpm instantiate -- <parent-outside-harness> --type web|extension --server existing|create|none --name <name> \\
+  pnpm instantiate -- <parent-outside-harness> --type web|extension --server existing|create|none --name <name> [--server-database sqlite|mysql|postgres|mongo] [--server-cache memory|redis] [--server-push none|ws|sse|grpc] [--server-mq none|rabbitmq|kafka|nats|rocketmq] [--server-log console|file|both] [--server-storage none|s3|aliyun|cos] \\
     [--english-name <English translation>] [--id <id>] [--requirements-file <md-or-txt-path> | --requirements-text <text>] \\
     [--policy-mode 预设|自定义] [--development-base-url <url>] \\
     [--test-base-url <url>] [--release-base-url <https-url>] \\
@@ -156,6 +158,12 @@ export async function resolveInitOptions(
     targetRoot: runtime.targetRoot ?? (root === "" ? undefined : root),
     projectType: readStringOption(args, "type"),
     serverMode: readStringOption(args, "server"),
+    serverDatabase: readStringOption(args, "server-database"),
+    serverCache: readStringOption(args, "server-cache"),
+    serverPush: readStringOption(args, "server-push"),
+    serverMq: readStringOption(args, "server-mq"),
+    serverLog: readStringOption(args, "server-log"),
+    serverStorage: readStringOption(args, "server-storage"),
     apiContract: readStringOption(args, "api-contract"),
     requirementsFile: readStringOption(args, "requirements-file", true),
     requirementsText:
@@ -237,6 +245,10 @@ export async function resolveInitOptions(
     projectType,
     workspaceMembers,
     serverMode,
+    serverOptions: resolveServerOptions(
+      serverMode,
+      "serverOptions" in identity && identity.serverOptions ? identity.serverOptions : supplied
+    ),
     apiContract: identity.apiContract || undefined,
     requirementsFile: identity.requirementsFile || undefined,
     requirementsText: identity.requirementsText || undefined,

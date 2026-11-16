@@ -1,3 +1,4 @@
+import { resolveServerOptions, formatServerOptions, type ServerOptions } from "./server-options.ts"
 import { parseWorkspaceSelection, primaryFrontend } from "./workspace-selection.ts"
 import { derivedLogoPaths } from "./brand.ts"
 import { stdin, stdout } from "node:process"
@@ -36,6 +37,7 @@ export interface PromptedIdentity {
   projectType: ProjectType
   workspaceMembers?: readonly (ProjectType | "server")[]
   serverMode?: "existing" | "create" | "none"
+  serverOptions?: ServerOptions
   apiContract?: string
   requirementsFile?: string
   requirementsText?: string
@@ -67,6 +69,7 @@ export interface InstantiationSummary {
     InitOptions,
     | "workspaceMembers"
     | "serverMode"
+    | "serverOptions"
     | "apiContract"
     | "projectType"
     | "name"
@@ -243,6 +246,7 @@ export async function collectPromptedIdentity(
       projectType,
       workspaceMembers,
       serverMode: basic.serverMode as "existing" | "create" | "none",
+      serverOptions: resolveServerOptions(basic.serverMode ?? "", basic),
       apiContract: basic.apiContract || undefined,
       requirementsFile: basic.requirementsFile || undefined,
       requirementsText: basic.requirementsText || undefined,
@@ -277,6 +281,13 @@ export async function promptForIdentity(
   }
 }
 
+/** 返回自建服务的普通 CLI 默认值，缺失结果视为内部错误。 */
+function defaultServerOptions(): ServerOptions {
+  const options = resolveServerOptions("create", {})
+  if (!options) throw new Error("缺少自建服务默认选型")
+  return options
+}
+
 /** 渲染写入前必须由用户完整确认的初始化事实。 */
 export function formatInstantiationSummary(summary: InstantiationSummary): string {
   const policy = summary.init.agentPolicy
@@ -292,7 +303,7 @@ export function formatInstantiationSummary(summary: InstantiationSummary): strin
   return `初始化完整汇总
 - Workspace 成员：${members.map((item) => `${summary.init.id}_${item}`).join(", ")}
 - 服务端：${local ? "不需要（纯本地）" : (summary.init.serverMode ?? "未选择")}${summary.init.serverMode === "create" ? `；创建 ${summary.init.id}_server，本地 http://127.0.0.1:8080` : ""}
-- 接口契约：${local ? "不需要" : (summary.init.apiContract ?? "待所选能力接线时核对")}
+${summary.init.serverMode === "create" ? formatServerOptions(summary.init.serverOptions ?? defaultServerOptions()) + "\n" : ""}- 接口契约：${local ? "不需要" : (summary.init.apiContract ?? "待所选能力接线时核对")}
 - 源路径（原始）：${summary.rawSourceRoot}
 - 源路径（规范）：${summary.canonicalSourceRoot}
 - 父目录（原始）：${summary.rawParentRoot ?? "未单独提供"}

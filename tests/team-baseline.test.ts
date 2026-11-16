@@ -1,3 +1,4 @@
+import { seedGoInfrastructure } from "./server-infrastructure-support.ts"
 import { execFile } from "node:child_process"
 import { cp, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises"
 import path from "node:path"
@@ -25,6 +26,7 @@ test("完整账号基线在 Web/Extension 复用真实团队归属与权限服�
   try {
     const assets = ".agents/skills/go-implement-service/assets/go-service"
     await cp(path.join(repositoryRoot, assets), path.join(root, assets), { recursive: true })
+    await seedGoInfrastructure(root)
     await generateGoServer(root, "ownership_server", "ownership_server")
     await mkdir(path.join(root, ".harness"), { recursive: true })
     await writeFile(

@@ -1,3 +1,4 @@
+import { seedGoInfrastructure } from "./server-infrastructure-support.ts"
 import { execFile } from "node:child_process"
 import { cp, mkdir, mkdtemp, readFile, rm, writeFile, symlink } from "node:fs/promises"
 import os from "node:os"
@@ -37,6 +38,7 @@ test("Go identity adapter uses authoritative wire contracts and durable account 
     )
     const assets = ".agents/skills/go-implement-service/assets/go-service"
     await cp(path.join(repositoryRoot, assets), path.join(root, assets), { recursive: true })
+    await seedGoInfrastructure(root)
     await generateGoServer(root, "contract_server", "contract_server")
     await mkdir(path.join(root, ".harness"), { recursive: true })
     await writeFile(

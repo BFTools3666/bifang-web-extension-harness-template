@@ -1,0 +1,93 @@
+// Package push 持有按服务端授权作用域隔离的有界推送订阅。
+package push
+
+import (
+	"context"
+	"errors"
+	"project_id/internal/config"
+	"sync"
+)
+
+// subscription 只由 Hub 的锁拥有，慢消费者断开而不阻塞生产者。
+type subscription struct {
+	scope  string
+	events chan []byte
+}
+
+// Hub 拥有全部订阅；业务必须在挂载传输前完成鉴权并传入可信作用域。
+type Hub struct {
+	mu                           sync.Mutex
+	subscribers                  map[*subscription]struct{}
+	buffer, maxClients, maxBytes int
+	closed                       bool
+}
+
+// New 创建进程内推送中心；多实例事件广播需要独立接入所选 MQ。
+func New(ctx context.Context, cfg config.Push) (*Hub, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if cfg.Buffer <= 0 || cfg.MaxClients <= 0 || cfg.MaxBytes <= 0 {
+		return nil, errors.New("push: 容量无效")
+	}
+	return &Hub{subscribers: make(map[*subscription]struct{}), buffer: cfg.Buffer, maxClients: cfg.MaxClients, maxBytes: cfg.MaxBytes}, nil
+}
+
+// subscribe 只接受服务端已授权作用域，并返回幂等清理函数。
+func (h *Hub) subscribe(scope string) (<-chan []byte, func(), error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if scope == "" || h.closed || len(h.subscribers) >= h.maxClients {
+		return nil, nil, errors.New("push: 订阅被拒绝")
+	}
+	subscriber := &subscription{scope: scope, events: make(chan []byte, h.buffer)}
+	h.subscribers[subscriber] = struct{}{}
+	cancel := func() {
+		h.mu.Lock()
+		defer h.mu.Unlock()
+		if _, ok := h.subscribers[subscriber]; ok {
+			delete(h.subscribers, subscriber)
+			close(subscriber.events)
+		}
+	}
+	return subscriber.events, cancel, nil
+}
+
+// Publish 复制每份消息，只发送到同一作用域；溢出时断开该慢订阅。
+func (h *Hub) Publish(ctx context.Context, scope string, payload []byte) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if scope == "" || len(payload) > h.maxBytes {
+		return errors.New("push: 作用域或消息大小无效")
+	}
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if h.closed {
+		return errors.New("push: 已关闭")
+	}
+	for subscriber := range h.subscribers {
+		if subscriber.scope != scope {
+			continue
+		}
+		select {
+		case subscriber.events <- append([]byte(nil), payload...):
+		default:
+			delete(h.subscribers, subscriber)
+			close(subscriber.events)
+		}
+	}
+	return nil
+}
+
+// Close 幂等断开所有订阅，使传输循环退出。
+func (h *Hub) Close() error {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.closed = true
+	for subscriber := range h.subscribers {
+		close(subscriber.events)
+		delete(h.subscribers, subscriber)
+	}
+	return nil
+}

@@ -1,9 +1,22 @@
+import { DEFAULT_SERVER_SELECTION } from "./server-options-support.ts"
 import { execFileSync, spawnSync } from "node:child_process"
 import { collectPromptedIdentity as collectIdentity } from "../.harness/tooling/prompts.ts"
 
 /** 本组测试聚焦原有字段；服务来源在 Workspace 表单用例独立覆盖。 */
 const collectPromptedIdentity: typeof collectIdentity = (defaults, ask, validateTarget) =>
-  collectIdentity({ serverMode: "create", ...defaults }, ask, validateTarget)
+  collectIdentity(
+    {
+      serverMode: "create",
+      ...(defaults.serverMode && defaults.serverMode !== "create" ? {} : DEFAULT_SERVER_SELECTION),
+      ...Object.fromEntries(
+        Object.entries(defaults).filter(
+          ([key, value]) => value !== undefined || !Object.hasOwn(DEFAULT_SERVER_SELECTION, key)
+        )
+      )
+    },
+    ask,
+    validateTarget
+  )
 import { describe, test } from "vitest"
 import {
   TEST_BASE_URLS,

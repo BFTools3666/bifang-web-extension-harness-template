@@ -1,0 +1,66 @@
+package push
+
+import (
+	"context"
+	"errors"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/types/known/emptypb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
+	"time"
+)
+
+// streamService 将领域鉴权回调与流生命周期绑定；网络监听及 TLS 由实际宿主拥有。
+type streamService struct {
+	hub       *Hub
+	authorize func(context.Context) (string, error)
+}
+
+// streamContract 是注册手写中性协议时的明确服务边界。
+type streamContract interface{ subscribe(grpc.ServerStream) error }
+
+// subscribe 在发送首条消息前完成鉴权，客户端不能自行指定作用域。
+func (s *streamService) subscribe(stream grpc.ServerStream) error {
+	deadline, ok := stream.Context().Deadline()
+	if !ok || time.Until(deadline) > time.Minute {
+		return errors.New("push: 流必须设置不超过一分钟的截止时间并按快照重连")
+	}
+	if err := stream.RecvMsg(&emptypb.Empty{}); err != nil {
+		return err
+	}
+	scope, err := s.authorize(stream.Context())
+	if err != nil {
+		return err
+	}
+	events, cancel, err := s.hub.subscribe(scope)
+	if err != nil {
+		return err
+	}
+	defer cancel()
+	if err := stream.SendHeader(metadata.Pairs("x-push-protocol", "bytes-v1")); err != nil {
+		return err
+	}
+	for {
+		select {
+		case <-stream.Context().Done():
+			return stream.Context().Err()
+		case payload, open := <-events:
+			if !open {
+				return nil
+			}
+			if err := stream.SendMsg(wrapperspb.Bytes(payload)); err != nil {
+				return err
+			}
+		}
+	}
+}
+
+// RegisterGRPC 注册 /infrastructure.Push/Subscribe，必须传入真实鉴权函数。
+// 请求 google.protobuf.Empty，服务端流响应 google.protobuf.BytesValue；客户端须设置流截止时间。
+func (h *Hub) RegisterGRPC(server *grpc.Server, authorize func(context.Context) (string, error)) error {
+	if server == nil || authorize == nil {
+		return errors.New("push: gRPC 必须配置宿主与鉴权")
+	}
+	server.RegisterService(&grpc.ServiceDesc{ServiceName: "infrastructure.Push", HandlerType: (*streamContract)(nil), Streams: []grpc.StreamDesc{{StreamName: "Subscribe", ServerStreams: true, Handler: func(service any, stream grpc.ServerStream) error { return service.(streamContract).subscribe(stream) }}}}, &streamService{hub: h, authorize: authorize})
+	return nil
+}

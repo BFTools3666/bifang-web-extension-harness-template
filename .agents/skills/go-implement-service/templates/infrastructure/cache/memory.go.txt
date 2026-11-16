@@ -1,0 +1,118 @@
+package cache
+
+import (
+	"container/list"
+	"context"
+	"errors"
+	"project_id/internal/config"
+	"sync"
+	"time"
+)
+
+// entry 保存独立字节副本、过期时间与 LRU 位置。
+type entry struct {
+	key     string
+	value   []byte
+	expires time.Time
+}
+
+// Store 拥有进程内有界 LRU；不启动后台清理协程。
+type Store struct {
+	mu                 sync.Mutex
+	items              map[string]*list.Element
+	order              *list.List
+	capacity, maxBytes int
+	closed             bool
+}
+
+// New 创建缓存，配置由服务启动前统一校验。
+func New(ctx context.Context, cfg config.Cache) (*Store, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if cfg.Capacity <= 0 || cfg.MaxBytes <= 0 {
+		return nil, errors.New("cache: 容量必须大于零")
+	}
+	return &Store{items: make(map[string]*list.Element), order: list.New(), capacity: cfg.Capacity, maxBytes: cfg.MaxBytes}, nil
+}
+
+// Get 返回独立副本；过期项视为未命中并立即回收。
+func (s *Store) Get(ctx context.Context, key string) ([]byte, bool, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, false, err
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.closed {
+		return nil, false, ErrClosed
+	}
+	element := s.items[key]
+	if element == nil {
+		return nil, false, nil
+	}
+	value := element.Value.(entry)
+	if !time.Now().Before(value.expires) {
+		s.remove(element)
+		return nil, false, nil
+	}
+	s.order.MoveToFront(element)
+	return append([]byte(nil), value.value...), true, nil
+}
+
+// Set 要求显式正 TTL，容量耗尽时淘汰最久未使用项。
+func (s *Store) Set(ctx context.Context, key string, value []byte, ttl time.Duration) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if key == "" || len(key) > 512 || ttl <= 0 {
+		return errors.New("cache: 键或 TTL 无效")
+	}
+	if len(value) > s.maxBytes {
+		return ErrCapacity
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.closed {
+		return ErrClosed
+	}
+	if element := s.items[key]; element != nil {
+		s.remove(element)
+	}
+	s.items[key] = s.order.PushFront(entry{key, append([]byte(nil), value...), time.Now().Add(ttl)})
+	if s.order.Len() > s.capacity {
+		s.remove(s.order.Back())
+	}
+	return nil
+}
+
+// Delete 幂等移除给定键，不改变其他缓存。
+func (s *Store) Delete(ctx context.Context, key string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.closed {
+		return ErrClosed
+	}
+	if element := s.items[key]; element != nil {
+		s.remove(element)
+	}
+	return nil
+}
+
+// remove 只在持有互斥锁时修改两个索引。
+func (s *Store) remove(element *list.Element) {
+	delete(s.items, element.Value.(entry).key)
+	s.order.Remove(element)
+}
+
+// Close 幂等释放所有缓存值。
+func (s *Store) Close() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.closed = true
+	clear(s.items)
+	s.order.Init()
+	return nil
+}

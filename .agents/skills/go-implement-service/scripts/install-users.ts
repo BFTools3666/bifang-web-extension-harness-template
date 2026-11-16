@@ -47,7 +47,7 @@ export async function prepareUsers(
     kind?: string
     id: string
     members: { type: string; directory: string }[]
-    service: { mode: string }
+    service: { mode: string; options?: { serverDatabase?: string } }
   }
   if (
     config.kind !== "workspace" ||
@@ -55,6 +55,10 @@ export async function prepareUsers(
     !/^[a-z][a-z0-9-]*$/u.test(config.id)
   )
     throw new Error("只允许装配已确认的自建服务")
+  if (config.service.options?.serverDatabase === "mongo")
+    throw new Error(
+      "当前账号模板依赖 GORM；MongoDB 服务须按真实领域契约实现独立文档仓储，不能套用 SQL 模板"
+    )
   const members = config.members.filter((member) => member.type === "server")
   if (members.length !== 1 || members[0]?.directory !== `${config.id}_server`)
     throw new Error("无效服务成员")

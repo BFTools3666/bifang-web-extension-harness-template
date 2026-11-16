@@ -1,0 +1,48 @@
+package push
+
+import (
+	"bufio"
+	"context"
+	"net/http"
+	"net/http/httptest"
+	"project_id/internal/config"
+	"testing"
+	"time"
+)
+
+// TestPushSSETransport 使用真实 HTTP 连接验证立即建连、作用域投递与关闭。
+func TestPushSSETransport(t *testing.T) {
+	hub, err := New(context.Background(), config.Push{Buffer: 2, MaxClients: 2, MaxBytes: 64})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer hub.Close()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { hub.ServeSSE(w, r, "authorized") }))
+	defer server.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	request, _ := http.NewRequestWithContext(ctx, http.MethodGet, server.URL, nil)
+	response, err := server.Client().Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode != 200 || response.Header.Get("Content-Type") != "text/event-stream" {
+		t.Fatal("headers")
+	}
+	reader := bufio.NewReader(response.Body)
+	if line, err := reader.ReadString('\n'); err != nil || line != ": ready\n" {
+		t.Fatal(line, err)
+	}
+	_, _ = reader.ReadString('\n')
+	if hub.Publish(ctx, "other", []byte("forbidden")) != nil {
+		t.Fatal("other scope")
+	}
+	if hub.Publish(ctx, "authorized", []byte("hello")) != nil {
+		t.Fatal("publish")
+	}
+	if line, err := reader.ReadString('\n'); err != nil || line != "data: aGVsbG8=\n" {
+		t.Fatal(line, err)
+	}
+	_ = hub.Close()
+}

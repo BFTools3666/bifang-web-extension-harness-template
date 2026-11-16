@@ -1,3 +1,5 @@
+import { fixture } from "./creation-form-support.ts"
+import { DEFAULT_SERVER_SELECTION } from "./server-options-support.ts"
 import path from "node:path"
 import { realpath } from "node:fs/promises"
 import { readFile } from "node:fs/promises"
@@ -7,8 +9,7 @@ import { inspectInitializationCatalog } from "../scripts/harness-validation/tool
 import { describe, expect, test } from "vitest"
 import {
   inspectCreationForm,
-  parseCreationFormInput,
-  type CreationFormInput
+  parseCreationFormInput
 } from "../.harness/tooling/initialization-form.ts"
 import { collectPromptedIdentity } from "../.harness/tooling/prompts.ts"
 import {
@@ -26,40 +27,6 @@ import {
   temporaryDirectory,
   writeFile
 } from "./harness-tooling-support.ts"
-
-/** 创建外部隔离输入，使用真实 Logo，工程执行由断言替身截住。 */
-async function fixture(): Promise<{ root: string; file: string; input: CreationFormInput }> {
-  const root = await temporaryDirectory("creation-form-")
-  const logoPath = path.join(root, "selected.png")
-  await writeFile(
-    logoPath,
-    await createLogo({ root, name: "Notes", id: "notes", color: "#4C6EF5" })
-  )
-  return {
-    root,
-    file: path.join(root, "input.json"),
-    input: {
-      values: {
-        projectType: "web",
-        serverMode: "create",
-        requirementsFile: "",
-        name: "Notes",
-        targetRoot: path.join(root, "new-parent"),
-        policyMode: "recommended"
-      },
-      scope: {
-        users: "个人",
-        home: "文本笔记编辑器",
-        pages: "首页",
-        operations: "编辑、清空，无远端能力",
-        design: "桌面单页编辑器和状态反馈",
-        data: "本地内存，不调用服务",
-        acceptance: "输入显示、清空恢复空状态；相关类型、行为测试和实际浏览器走查"
-      },
-      logoPath
-    }
-  }
-}
 
 /** 让夹具缺失事实明确失败，避免非空断言掩盖测试输入错误。 */
 function fact<T>(value: T | undefined): T {
@@ -106,6 +73,15 @@ test.each(["web", "extension"])("拒绝自动选择宿主 %s", async (projectTyp
 /** 需求自动决定独立记录来源，随需求/范围失效，显式答案仍优先。 */
 test("自动选择可进入完整确认，不能伪装用户答案或复用旧分析", async () => {
   const { input } = await fixture()
+  for (const field of [
+    "serverDatabase",
+    "serverCache",
+    "serverPush",
+    "serverMq",
+    "serverLog",
+    "serverStorage"
+  ] as const)
+    delete input.values[field]
   delete input.values.serverMode
   input.values.requirementsText = "浏览器中本地编辑文字，不联网。"
   const first = await inspectCreationForm(repositoryRoot, input)
@@ -140,7 +116,17 @@ test("自动选择可进入完整确认，不能伪装用户答案或复用旧�
   expect(scoped.analysisRevision).not.toBe(changed.analysisRevision)
   const explicitInput = {
     ...input,
-    values: { ...input.values, projectType: "web", serverMode: "create" }
+    values: {
+      ...input.values,
+      projectType: "web",
+      serverMode: "create",
+      serverDatabase: "sqlite",
+      serverCache: "memory",
+      serverPush: "none",
+      serverMq: "none",
+      serverLog: "console",
+      serverStorage: "none"
+    }
   }
   const refreshed = await inspectCreationForm(repositoryRoot, explicitInput)
   expect(refreshed.phase).toBe("needs-scope")

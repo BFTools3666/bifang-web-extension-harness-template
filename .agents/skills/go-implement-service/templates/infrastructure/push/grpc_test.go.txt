@@ -1,0 +1,68 @@
+package push
+
+import (
+	"context"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/protobuf/types/known/emptypb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
+	"net"
+	"project_id/internal/config"
+	"testing"
+	"time"
+)
+
+// TestPushGRPCTransport 通过真实本机连接验证流协议、作用域、截止时间及释放。
+func TestPushGRPCTransport(t *testing.T) {
+	hub, err := New(context.Background(), config.Push{Buffer: 2, MaxClients: 2, MaxBytes: 64})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer hub.Close()
+	server := grpc.NewServer()
+	if err := hub.RegisterGRPC(server, func(context.Context) (string, error) { return "authorized", nil }); err != nil {
+		t.Fatal(err)
+	}
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	done := make(chan struct{})
+	go func() { defer close(done); _ = server.Serve(listener) }()
+	defer func() { server.Stop(); _ = listener.Close(); <-done }()
+	client, err := grpc.NewClient("passthrough:///"+listener.Addr().String(), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer client.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	stream, err := client.NewStream(ctx, &grpc.StreamDesc{ServerStreams: true}, "/infrastructure.Push/Subscribe")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := stream.SendMsg(&emptypb.Empty{}); err != nil {
+		t.Fatal(err)
+	}
+	_ = stream.CloseSend()
+	if _, err := stream.Header(); err != nil {
+		t.Fatal(err)
+	}
+	if hub.Publish(ctx, "other", []byte("forbidden")) != nil {
+		t.Fatal("scope")
+	}
+	if hub.Publish(ctx, "authorized", []byte("hello")) != nil {
+		t.Fatal("publish")
+	}
+	var payload wrapperspb.BytesValue
+	if err := stream.RecvMsg(&payload); err != nil || string(payload.Value) != "hello" {
+		t.Fatal(string(payload.Value), err)
+	}
+	_ = hub.Close()
+	if err := stream.RecvMsg(&payload); err == nil {
+		t.Fatal("expected close")
+	}
+	if err := hub.RegisterGRPC(nil, nil); err == nil {
+		t.Fatal("missing host")
+	}
+}

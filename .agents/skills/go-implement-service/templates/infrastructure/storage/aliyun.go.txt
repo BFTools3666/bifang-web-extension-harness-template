@@ -1,0 +1,91 @@
+package storage
+
+import (
+	"bytes"
+	"context"
+	"errors"
+	"github.com/aliyun/aliyun-oss-go-sdk/oss"
+	"io"
+	"net/http"
+	"project_id/internal/config"
+)
+
+// Store 通过阿里云官方 SDK 访问已配置桶。
+type Store struct {
+	limits
+	bucket    *oss.Bucket
+	transport *http.Transport
+}
+
+// New 创建独立可回收 HTTP 连接池，支持部署注入的 STS 会话令牌。
+func New(ctx context.Context, cfg config.Storage) (*Store, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	options := []oss.ClientOption{oss.HTTPClient(&http.Client{Transport: transport, Timeout: cfg.Timeout})}
+	if cfg.SessionToken != "" {
+		options = append(options, oss.SecurityToken(cfg.SessionToken))
+	}
+	client, err := oss.New(cfg.Endpoint, cfg.AccessKey, cfg.SecretKey, options...)
+	if err != nil {
+		transport.CloseIdleConnections()
+		return nil, errors.New("storage: OSS 配置无效")
+	}
+	bucket, err := client.Bucket(cfg.Bucket)
+	if err != nil {
+		transport.CloseIdleConnections()
+		return nil, errors.New("storage: OSS 桶配置无效")
+	}
+	return &Store{limits: newLimits(cfg), bucket: bucket, transport: transport}, nil
+}
+
+// Put 在本地有界校验后上传，不自动设置公开 ACL。
+func (s *Store) Put(ctx context.Context, scope, key string, body io.Reader) error {
+	name, err := s.objectKey(scope, key)
+	if err != nil {
+		return err
+	}
+	data, err := s.upload(ctx, body)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+	if s.bucket.PutObject(name, bytes.NewReader(data), oss.WithContext(ctx)) != nil {
+		return errors.New("storage: OSS 上传失败，结果可能未知")
+	}
+	return nil
+}
+
+// Get 返回有界且可取消的对象流。
+func (s *Store) Get(ctx context.Context, scope, key string) (io.ReadCloser, error) {
+	name, err := s.objectKey(scope, key)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	body, err := s.bucket.GetObject(name, oss.WithContext(ctx))
+	if err != nil {
+		cancel()
+		return nil, errors.New("storage: OSS 下载失败")
+	}
+	return &boundedBody{ReadCloser: body, remaining: s.maxBytes, cancel: cancel}, nil
+}
+
+// Delete 只删除当前组织精确对象，不自动重放写入。
+func (s *Store) Delete(ctx context.Context, scope, key string) error {
+	name, err := s.objectKey(scope, key)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+	if s.bucket.DeleteObject(name, oss.WithContext(ctx)) != nil {
+		return errors.New("storage: OSS 删除失败，结果可能未知")
+	}
+	return nil
+}
+
+// Close 释放独立连接池。
+func (s *Store) Close() error { s.transport.CloseIdleConnections(); return nil }

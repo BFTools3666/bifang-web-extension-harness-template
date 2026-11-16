@@ -1,0 +1,9 @@
+// Package model 保存 MongoDB 文档的中性字段，不依赖 SQL ORM。
+package model
+
+// Base 供实际领域文档嵌入，时间由领域在同一写入中明确设置。
+// 仓储 Document 已拥有 _id、organization_id、version，业务载荷不要重复这些字段。
+type Base struct {
+	CreatedTime Timestamp `bson:"created_time" json:"created_time"`
+	UpdatedTime Timestamp `bson:"updated_time" json:"updated_time"`
+}

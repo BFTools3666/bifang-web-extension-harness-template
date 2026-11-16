@@ -1,0 +1,73 @@
+package cache
+
+import (
+	"context"
+	"errors"
+	"github.com/redis/go-redis/v9"
+	"project_id/internal/config"
+	"time"
+)
+
+// Store 复用单个 Redis 连接池，所有键带工作区前缀。
+type Store struct {
+	client   *redis.Client
+	prefix   string
+	maxBytes int
+}
+
+// New 在启动预算内验证连接，失败立即关闭连接池且不泄漏地址。
+func New(ctx context.Context, cfg config.Cache) (*Store, error) {
+	options, err := redis.ParseURL(cfg.URL)
+	if err != nil {
+		return nil, errors.New("cache: Redis URL 无效")
+	}
+	options.DialTimeout = cfg.Timeout
+	options.ReadTimeout = cfg.Timeout
+	options.WriteTimeout = cfg.Timeout
+	options.ContextTimeoutEnabled = true
+	options.MaxRetries = -1
+	options.PoolSize = 10
+	client := redis.NewClient(options)
+	if err := client.Ping(ctx).Err(); err != nil {
+		_ = client.Close()
+		return nil, errors.New("cache: Redis 连接失败")
+	}
+	return &Store{client: client, prefix: cfg.Prefix, maxBytes: cfg.MaxBytes}, nil
+}
+
+// Get 先在 Redis 内检查长度再读取，避免接收超大缓存值。
+func (s *Store) Get(ctx context.Context, key string) ([]byte, bool, error) {
+	result, err := s.client.Eval(ctx, `local n=redis.call('STRLEN',KEYS[1]); if n>tonumber(ARGV[1]) then return redis.error_reply('VALUE_TOO_LARGE') end; return redis.call('GET',KEYS[1])`, []string{s.prefix + key}, s.maxBytes).Text()
+	if errors.Is(err, redis.Nil) {
+		return nil, false, nil
+	}
+	if err != nil {
+		return nil, false, errors.New("cache: Redis 读取失败")
+	}
+	return []byte(result), true, nil
+}
+
+// Set 采用显式过期时间，不对未知写入结果自动重试。
+func (s *Store) Set(ctx context.Context, key string, value []byte, ttl time.Duration) error {
+	if key == "" || len(key) > 512 || ttl <= 0 {
+		return errors.New("cache: 键或 TTL 无效")
+	}
+	if len(value) > s.maxBytes {
+		return ErrCapacity
+	}
+	if err := s.client.Set(ctx, s.prefix+key, value, ttl).Err(); err != nil {
+		return errors.New("cache: Redis 写入失败，结果可能未知")
+	}
+	return nil
+}
+
+// Delete 移除当前工作区的精确键。
+func (s *Store) Delete(ctx context.Context, key string) error {
+	if err := s.client.Del(ctx, s.prefix+key).Err(); err != nil {
+		return errors.New("cache: Redis 删除失败")
+	}
+	return nil
+}
+
+// Close 释放连接池。
+func (s *Store) Close() error { return s.client.Close() }

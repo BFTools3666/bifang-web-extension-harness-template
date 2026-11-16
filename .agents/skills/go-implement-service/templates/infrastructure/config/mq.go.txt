@@ -1,0 +1,61 @@
+package config
+
+import (
+	"errors"
+	"strings"
+	"time"
+)
+
+// MQ 保存所选 Broker 参数；URL、密码等只留在服务端私有配置。
+type MQ struct {
+	Driver   string        `mapstructure:"driver"`
+	URL      string        `mapstructure:"url"`
+	Brokers  []string      `mapstructure:"brokers"`
+	Topic    string        `mapstructure:"topic"`
+	Group    string        `mapstructure:"group"`
+	Stream   string        `mapstructure:"stream"`
+	TLS      bool          `mapstructure:"tls"`
+	Username string        `mapstructure:"username"`
+	Password string        `mapstructure:"password"`
+	MaxBytes int           `mapstructure:"max_bytes"`
+	Timeout  time.Duration `mapstructure:"timeout"`
+}
+
+// validate 只校验实际选中 Broker 的必需参数，不编造集群地址或业务主题。
+func (c MQ) validate(prod bool) error {
+	if c.Topic == "" || c.Group == "" || c.Timeout <= 0 || c.Timeout > time.Minute || c.MaxBytes < 1 || c.MaxBytes > 1<<20 {
+		return errors.New("config: 必须配置 MQ 主题、消费组、超时和大小上限")
+	}
+	if (c.Username == "") != (c.Password == "") {
+		return errors.New("config: MQ 用户名和密码须同时配置")
+	}
+	switch c.Driver {
+	case "rabbitmq":
+		if !strings.HasPrefix(c.URL, "amqp://") && !strings.HasPrefix(c.URL, "amqps://") {
+			return errors.New("config: 必须配置 AMQP URL")
+		}
+		if prod && !strings.HasPrefix(c.URL, "amqps://") {
+			return errors.New("config: 生产 RabbitMQ 必须使用 TLS")
+		}
+	case "nats":
+		if c.Stream == "" || (!strings.HasPrefix(c.URL, "nats://") && !strings.HasPrefix(c.URL, "tls://")) {
+			return errors.New("config: 必须配置 NATS URL 和 Stream")
+		}
+		if prod && !strings.HasPrefix(c.URL, "tls://") {
+			return errors.New("config: 生产 NATS 必须使用 TLS")
+		}
+	case "kafka", "rocketmq":
+		if len(c.Brokers) == 0 {
+			return errors.New("config: 必须配置 Broker 或 NameServer 地址")
+		}
+		for _, address := range c.Brokers {
+			if strings.TrimSpace(address) == "" {
+				return errors.New("config: Broker 地址不能为空")
+			}
+		}
+		if prod && c.Driver == "kafka" && !c.TLS {
+			return errors.New("config: 生产 Kafka 必须使用 TLS")
+		}
+	}
+	return nil
+}

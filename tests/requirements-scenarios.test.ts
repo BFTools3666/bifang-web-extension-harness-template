@@ -1,3 +1,4 @@
+import { DEFAULT_SERVER_SELECTION } from "./server-options-support.ts"
 import path from "node:path"
 import { expect, test } from "vitest"
 import { inspectCreationForm } from "../.harness/tooling/initialization-form.ts"
@@ -27,6 +28,7 @@ test.each([
       name,
       englishName: "Scenario",
       serverMode,
+      ...(serverMode === "create" ? DEFAULT_SERVER_SELECTION : {}),
       requirementsText,
       targetRoot: await temporaryDirectory("intent-scenario-")
     }
@@ -79,9 +81,19 @@ test("已有服务改自建时预览与执行一致，反向只补新地址", as
         scope
       })
     ).field
-  ).toBe("apiContract")
+  ).toBe("serverDatabase")
   const clean = reviseInitializationAnswers(initial, { serverMode: "create" })
-  const state = await inspectCreationForm(repositoryRoot, { values: clean })
+  const state = await inspectCreationForm(repositoryRoot, {
+    values: {
+      ...clean,
+      serverDatabase: "sqlite",
+      serverCache: "memory",
+      serverPush: "none",
+      serverMq: "none",
+      serverLog: "console",
+      serverStorage: "none"
+    }
+  })
   expect(state.phase).toBe("needs-scope")
   const identity = state.identity
   if (!identity) throw new Error("服务选择完成后缺少工程身份")
@@ -91,7 +103,10 @@ test("已有服务改自建时预览与执行一致，反向只补新地址", as
     root: path.join(parent, identity.id),
     agentPolicy: recommendedAgentPolicy("test")
   })
-  expect(config.service).toEqual({ mode: "create", developmentBaseUrl: "http://127.0.0.1:8080" })
+  expect(config.service).toMatchObject({
+    mode: "create",
+    developmentBaseUrl: "http://127.0.0.1:8080"
+  })
   const reverse = reviseInitializationAnswers(clean, { serverMode: "existing" })
   expect((await inspectCreationForm(repositoryRoot, { values: reverse, scope })).field).toBe(
     "developmentBaseUrl"
@@ -174,6 +189,7 @@ test("文件后补一句不丢原文，取消协作需要新范围", async () =>
   const values = {
     projectType: "web",
     serverMode: "create",
+    ...DEFAULT_SERVER_SELECTION,
     name: "Notes",
     requirementsFile: file,
     targetRoot: path.join(root, "projects")

@@ -1,0 +1,97 @@
+package mq
+
+import (
+	"context"
+	"errors"
+	"github.com/nats-io/nats.go"
+	"project_id/internal/config"
+)
+
+// Client 使用 JetStream 持久消费，不把 Core NATS 的临时消息当可靠队列。
+type Client struct {
+	guard
+	conn                 *nats.Conn
+	js                   nats.JetStreamContext
+	topic, group, stream string
+}
+
+// New 连接已有 NATS，Stream 与 durable Consumer 由部署配置预先建立。
+func New(ctx context.Context, cfg config.MQ) (*Client, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	conn, err := nats.Connect(cfg.URL, nats.Timeout(cfg.Timeout), nats.NoReconnect())
+	if err != nil {
+		return nil, errors.New("mq: NATS 连接失败")
+	}
+	js, err := conn.JetStream(nats.MaxWait(cfg.Timeout))
+	if err != nil {
+		conn.Close()
+		return nil, errors.New("mq: JetStream 不可用")
+	}
+	if _, err := js.StreamInfo(cfg.Stream, nats.Context(ctx)); err != nil {
+		conn.Close()
+		return nil, errors.New("mq: JetStream Stream 不存在")
+	}
+	return &Client{guard: guard{maxBytes: cfg.MaxBytes, timeout: cfg.Timeout}, conn: conn, js: js, topic: cfg.Topic, group: cfg.Group, stream: cfg.Stream}, nil
+}
+
+// Publish 使用业务消息 ID 支持 Broker 去重，但业务仍须幂等。
+func (c *Client) Publish(ctx context.Context, message Message) error {
+	if err := c.validate(message); err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(ctx, c.timeout)
+	defer cancel()
+	msg := nats.NewMsg(c.topic)
+	msg.Data = message.Body
+	msg.Header.Set(nats.MsgIdHdr, message.ID)
+	if _, err := c.js.PublishMsg(msg, nats.Context(ctx)); err != nil {
+		return errors.New("mq: JetStream 发布失败，结果可能未知")
+	}
+	return nil
+}
+
+// Consume 绑定已有 durable，业务失败时延迟重投，成功才同步确认。
+func (c *Client) Consume(ctx context.Context, handler Handler) error {
+	if handler == nil {
+		return errors.New("mq: 缺少消费者")
+	}
+	if err := c.begin(); err != nil {
+		return err
+	}
+	defer c.consuming.Store(false)
+	subscription, err := c.js.PullSubscribe(c.topic, c.group, nats.Bind(c.stream, c.group))
+	if err != nil {
+		return errors.New("mq: JetStream Consumer 不存在")
+	}
+	defer subscription.Unsubscribe()
+	for {
+		messages, err := subscription.Fetch(1, nats.Context(ctx))
+		if err != nil {
+			if ctx.Err() != nil {
+				return ctx.Err()
+			}
+			if errors.Is(err, nats.ErrTimeout) {
+				continue
+			}
+			return errors.New("mq: JetStream 消费失败")
+		}
+		for _, msg := range messages {
+			if err := c.validate(Message{ID: msg.Header.Get(nats.MsgIdHdr), Body: msg.Data}); err != nil {
+				_ = msg.Term()
+				return err
+			}
+			if err := handler(ctx, Message{ID: msg.Header.Get(nats.MsgIdHdr), Body: msg.Data}); err != nil {
+				_ = msg.NakWithDelay(c.timeout)
+				return err
+			}
+			if err := msg.AckSync(nats.Context(ctx)); err != nil {
+				return errors.New("mq: JetStream 确认失败，可能重新投递")
+			}
+		}
+	}
+}
+
+// Close 立即停止网络活动；消费循环由上层取消并等待。
+func (c *Client) Close() error { c.conn.Close(); return nil }

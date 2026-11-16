@@ -1,0 +1,40 @@
+package config
+
+import (
+	"errors"
+	"net/url"
+	"strings"
+	"time"
+)
+
+// Storage 只绑定服务端拥有的桶，凭据不会输出到浏览器或选型记录。
+type Storage struct {
+	Driver       string        `mapstructure:"driver"`
+	Endpoint     string        `mapstructure:"endpoint"`
+	Region       string        `mapstructure:"region"`
+	Bucket       string        `mapstructure:"bucket"`
+	AccessKey    string        `mapstructure:"access_key"`
+	SecretKey    string        `mapstructure:"secret_key"`
+	SessionToken string        `mapstructure:"session_token"`
+	Prefix       string        `mapstructure:"prefix"`
+	MaxBytes     int64         `mapstructure:"max_bytes"`
+	Timeout      time.Duration `mapstructure:"timeout"`
+}
+
+// validate 拒绝带凭据 URL、非根 endpoint、空桶与过大操作预算。
+func (c Storage) validate(prod bool) error {
+	endpoint, err := url.Parse(c.Endpoint)
+	if err != nil || endpoint.Host == "" || endpoint.User != nil || endpoint.RawQuery != "" || endpoint.Fragment != "" || (endpoint.Path != "" && endpoint.Path != "/") || (endpoint.Scheme != "http" && endpoint.Scheme != "https") {
+		return errors.New("config: 必须配置有效的对象存储 endpoint")
+	}
+	if prod && endpoint.Scheme != "https" {
+		return errors.New("config: 生产对象存储必须使用 HTTPS")
+	}
+	if c.Bucket == "" || c.AccessKey == "" || c.SecretKey == "" || c.Prefix == "" || !strings.HasSuffix(c.Prefix, "/") || strings.Contains(c.Prefix, "..") || strings.HasPrefix(c.Prefix, "/") {
+		return errors.New("config: 必须配置对象存储桶、凭据与安全前缀")
+	}
+	if c.MaxBytes < 1 || c.MaxBytes > 64<<20 || c.Timeout <= 0 || c.Timeout > 5*time.Minute {
+		return errors.New("config: 对象存储大小或超时无效")
+	}
+	return nil
+}

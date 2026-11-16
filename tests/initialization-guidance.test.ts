@@ -1,3 +1,4 @@
+import { DEFAULT_SERVER_SELECTION } from "./server-options-support.ts"
 import path from "node:path"
 import { describe, expect, test } from "vitest"
 import {
@@ -18,13 +19,26 @@ import {
 
 /** 不涉及服务选择的旧引导场景显式提供服务来源，避免新增问题改变其测试目标。 */
 const collectPromptedIdentity: typeof collectIdentity = (defaults, ask, interaction) =>
-  collectIdentity({ serverMode: "create", ...defaults }, ask, interaction)
+  collectIdentity(
+    {
+      serverMode: "create",
+      ...(defaults.serverMode && defaults.serverMode !== "create" ? {} : DEFAULT_SERVER_SELECTION),
+      ...Object.fromEntries(
+        Object.entries(defaults).filter(
+          ([key, value]) => value !== undefined || !Object.hasOwn(DEFAULT_SERVER_SELECTION, key)
+        )
+      )
+    },
+    ask,
+    interaction
+  )
 
 /** 提供合法基础身份，让测试聚焦逐项补问与默认值接受边界。 */
 const BASE_INPUT = {
   targetRoot: path.resolve("..", "guided-web"),
   projectType: "web",
   serverMode: "create",
+  ...DEFAULT_SERVER_SELECTION,
   name: "Guided Web",
   id: "guided-web",
   policyMode: "预设"
@@ -338,7 +352,8 @@ describe("初始化渐进式引导", () => {
           sourceRoot: repositoryRoot,
           interactive: true,
           promptIdentity: (defaults) =>
-            collectPromptedIdentity({ ...defaults, requirementsFile: "" }, async () => {
+            collectPromptedIdentity({ ...defaults, requirementsFile: "" }, async (question) => {
+              if (question.includes("服务端")) return "1"
               throw new Error("无需补问")
             }),
           confirm: async (summary) => {

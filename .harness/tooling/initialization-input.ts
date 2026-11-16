@@ -1,3 +1,4 @@
+import { isServerOption, parseServerOption, defaultServerOption } from "./server-options.ts"
 import path from "node:path"
 import { parseWorkspaceSelection, parseServerMode } from "./workspace-selection.ts"
 import initializationQuestions from "../../.agents/skills/web-instantiate-project/references/initialization-questions.json" with { type: "json" }
@@ -48,6 +49,12 @@ export interface PromptDefaults {
   targetRoot?: string
   projectType?: string
   serverMode?: string
+  serverDatabase?: string
+  serverCache?: string
+  serverPush?: string
+  serverMq?: string
+  serverLog?: string
+  serverStorage?: string
   apiContract?: string
   /** 保存可选需求原文路径；空字符串表示用户选择继续逐项引导。 */
   requirementsFile?: string
@@ -203,6 +210,14 @@ async function normalizeBasicField(
   allValues: PromptDefaults,
   cwd: string
 ): Promise<string> {
+  if (isServerOption(field)) {
+    const mode = allValues.serverMode ? parseServerMode(allValues.serverMode) : undefined
+    if (mode !== "create") {
+      if (value?.trim()) throw new Error("服务端选项仅适用于自建 Go 服务，请移除旧选型")
+      return ""
+    }
+    return parseServerOption(field, requiredText(value, "服务端选项"))
+  }
   // 需求校验不依赖宿主，非法宿主不能污染需求采集或抢先要求技术选择。
   const isExtension =
     ["name", "description", "identityI18n"].includes(field) && allValues.projectType
@@ -324,6 +339,7 @@ async function normalizeBasicField(
 
 /** 从已知身份推荐可接受的默认值，不猜项目类型、路径或服务地址。 */
 function suggestedBasicValue(field: BasicField, values: PromptDefaults): string | undefined {
+  if (isServerOption(field)) return defaultServerOption(field)
   if (field === "requirementsFile") return ""
   if (field === "policyMode") {
     return [

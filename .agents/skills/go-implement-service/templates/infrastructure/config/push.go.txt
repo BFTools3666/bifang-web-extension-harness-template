@@ -1,0 +1,19 @@
+package config
+
+import "errors"
+
+// Push 约束进程内订阅数、单订阅队列及每条消息大小。
+type Push struct {
+	Driver     string `mapstructure:"driver"`
+	Buffer     int    `mapstructure:"buffer"`
+	MaxClients int    `mapstructure:"max_clients"`
+	MaxBytes   int    `mapstructure:"max_bytes"`
+}
+
+// validate 拒绝无界队列或容量乘积过大的配置。
+func (c Push) validate() error {
+	if c.Buffer < 1 || c.Buffer > 256 || c.MaxClients < 1 || c.MaxClients > 10000 || c.MaxBytes < 1 || c.MaxBytes > 1<<20 || int64(c.Buffer)*int64(c.MaxClients)*int64(c.MaxBytes) > 256<<20 {
+		return errors.New("config: 推送容量无效或超过 256 MiB 上界")
+	}
+	return nil
+}

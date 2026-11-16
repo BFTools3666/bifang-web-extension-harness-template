@@ -1,3 +1,4 @@
+import { SERVER_OPTIONS } from "./server-options.ts"
 import questions from "../../.agents/skills/web-instantiate-project/references/initialization-questions.json" with { type: "json" }
 import { parseServerMode } from "./workspace-selection.ts"
 import type { PromptDefaults } from "./initialization-input.ts"
@@ -34,7 +35,9 @@ export function reviseInitializationAnswers(
     } catch {
       /* 非法选择由字段校验提示。 */
     }
-    if (changed)
+    if (changed) {
+      for (const field of Object.keys(SERVER_OPTIONS) as (keyof typeof SERVER_OPTIONS)[])
+        if (!Object.hasOwn(patch, field)) delete result[field]
       for (const key of [
         "developmentBaseUrl",
         "testBaseUrl",
@@ -42,6 +45,7 @@ export function reviseInitializationAnswers(
         "apiContract"
       ] as const)
         if (!Object.hasOwn(patch, key)) result[key] = ""
+    }
   }
   if (
     patch.policyMode &&

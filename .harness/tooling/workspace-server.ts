@@ -9,6 +9,14 @@ import {
   GO_RELEASE_CONFIG_COMMAND
 } from "./templates/go-config.ts"
 import { GO_CONFIGURATION_TEST } from "./templates/go-config-test.ts"
+import { resolveServerOptions } from "./server-options.ts"
+import type { ServerOptions } from "./types.ts"
+import {
+  infrastructureFiles,
+  adaptInfrastructureFile,
+  writeInfrastructure
+} from "./server-infrastructure.ts"
+import { infrastructureTestYaml } from "./server-infrastructure-config.ts"
 
 /** 真实响应日志回归，防止复用上游实现时记录原始 Token。 */
 const GO_LOGGER_TEST = String.raw`package middleware
@@ -31,8 +39,8 @@ import (
 // TestLoggerNeverLeaksResponseCredentials 使用实际配置验证正文与请求头的脱敏。
 func TestLoggerNeverLeaksResponseCredentials(t *testing.T) {
     gin.SetMode(gin.TestMode)
-    cfg, err := config.Load("../../configs/config.yaml", "dev")
-    if err != nil { t.Fatal(err) }
+    // 日志单元测试只消费日志配置，不依赖所选外部基础设施的运行参数。
+    cfg := &config.Config{}
     for _, body := range []bool{false, true} {
         var logs bytes.Buffer
         logger := logrus.New()
@@ -200,8 +208,13 @@ func (r *bodyCaptureReader) Read(data []byte) (int, error) {
 export async function generateGoServer(
   workspaceRoot: string,
   directory: string,
-  id: string
+  id: string,
+  selected?: ServerOptions
 ): Promise<void> {
+  const resolved = resolveServerOptions("create", selected ?? {})
+  if (!resolved) throw new Error("自建服务缺少选型")
+  const options: ServerOptions = resolved
+  const infrastructure = await infrastructureFiles(workspaceRoot, options)
   const assets = path.join(workspaceRoot, ".agents/skills/go-implement-service/assets")
   const seed = path.join(assets, "go-service")
   /** 只复制普通模板文件，拒绝链接或特殊文件进入生成结果。 */
@@ -211,9 +224,7 @@ export async function generateGoServer(
       if (entry.isDirectory()) await copyDirectory(file)
       else if (entry.isFile()) {
         if (file === "README.md") continue
-        let source = (await readFile(path.join(seed, file), "utf8"))
-          .replaceAll("<project_id>", id)
-          .replaceAll("project_id", id)
+        let source = await readFile(path.join(seed, file), "utf8")
         if (file === "configs/config-dev.yaml") {
           source = source
             .replace(/verification:[\s\S]*$/u, "")
@@ -247,15 +258,29 @@ export async function generateGoServer(
         }
         if (file === "internal/middleware/logger.go") source = adaptGoLogger(source)
         if (file === "internal/config/config.go") source = adaptGoConfiguration(source)
-        await writeNew(path.join(workspaceRoot, directory, file), source)
+        source = adaptInfrastructureFile(file, source, options, id)
+        await writeNew(
+          path.join(workspaceRoot, directory, file),
+          source.replaceAll("<project_id>", id).replaceAll("project_id", id)
+        )
       } else throw new Error(`Go 模板不能包含链接或特殊文件：${file}`)
     }
   }
   await copyDirectory("")
+  await writeInfrastructure(path.join(workspaceRoot, directory), infrastructure, options, id)
+  // 配置行为测试使用明确的测试参数，不把测试地址或凭据写入运行 YAML。
+  const fixtureYaml =
+    infrastructureTestYaml(options, id) +
+    `\nlog:\n  console: ${options.serverLog !== "file"}\n  output: ${options.serverLog === "console" ? '\"\"' : "logs/test.log"}\n  max_size: 64\n  max_backups: 10\n  max_age: 30\n`
+  const configurationTest = GO_CONFIGURATION_TEST.replace(
+    /(const testConfig = )("[^\n]*")/u,
+    (_match, prefix: string, literal: string) =>
+      prefix + JSON.stringify(String(JSON.parse(literal)) + fixtureYaml)
+  )
   for (const [file, source] of [
     ["configs/config-prod.yaml", GO_PRODUCTION_CONFIG],
     ["internal/config/environment.go", GO_CONFIG_ENVIRONMENT],
-    ["internal/config/release_test.go", GO_CONFIGURATION_TEST],
+    ["internal/config/release_test.go", configurationTest],
     ["internal/config/release.go", GO_RELEASE_CONFIG],
     ["cmd/release-config/main.go", GO_RELEASE_CONFIG_COMMAND]
   ] as const) {
@@ -267,7 +292,7 @@ export async function generateGoServer(
   )
   await writeNew(
     path.join(workspaceRoot, directory, "README.md"),
-    `# ${id} 服务端\n\n从 Workspace 根运行 \`pnpm dev:server\` 或在此运行 \`go run ./cmd/server\`。Go >=1.26；Gin HTTP + GORM SQLite，数据在 data/app.db。中性基线只提供 GET /healthz 与 GET /api/v1/system/health-check；业务按独立领域 Skill 实现。测试：\`go test ./...\`。\n\n开发监听 127.0.0.1:8080；测试/生产地址和部署按真实环境配置。无演示业务数据、默认用户或验证码回显。源码配置在 configs/config.yaml，开发差异在 config-dev.yaml，生产差异在 config-prod.yaml；运行时优先读取当前目录 config.yaml，再读取 configs/config.yaml，-c 可指定文件，数据库和日志相对启动 cwd。数据库等参数由 YAML 维护，代码只保留安全退级。根运行 \`pnpm release:server -- --platform=linux/amd64\` 生成 release/server.zip；省略平台时必须交互选择。发布配置只合并源码 configs/config.yaml 与 configs/config-prod.yaml，忽略开发覆盖与本机 APP_*，包内只有二进制和一份 config.yaml。解压后在同目录启动，先填写生产 jwt.secret 或用 APP_JWT_SECRET 注入；实际配置在资源启动前校验。\n`
+    `# ${id} 服务端\n\n从 Workspace 根运行 \`pnpm dev:server\` 或在此运行 \`go run ./cmd/server\`。Go >=1.26；Gin HTTP，数据库已选择 ${options.serverDatabase}。基础设施代码、接线和配置说明见 [INFRASTRUCTURE.md](INFRASTRUCTURE.md)。中性基线只提供 GET /healthz 与 GET /api/v1/system/health-check；业务按独立领域 Skill 实现。测试：\`go test ./...\`。\n\n开发监听 127.0.0.1:8080；测试/生产地址和部署按真实环境配置。无演示业务数据、默认用户或验证码回显。源码配置在 configs/config.yaml，开发差异在 config-dev.yaml，生产差异在 config-prod.yaml；运行时优先读取当前目录 config.yaml，再读取 configs/config.yaml，-c 可指定文件，数据库和日志相对启动 cwd。数据库等参数由 YAML 维护，代码只保留安全退级。根运行 \`pnpm release:server -- --platform=linux/amd64\` 生成 release/server.zip；省略平台时必须交互选择。发布配置只合并源码 configs/config.yaml 与 configs/config-prod.yaml，忽略开发覆盖与本机 APP_*，包内只有二进制和一份 config.yaml。解压后在同目录启动，先填写生产 jwt.secret 或用 APP_JWT_SECRET 注入；实际配置在资源启动前校验。\n`
   )
   await writeNew(
     path.join(workspaceRoot, directory, "AGENTS.md"),

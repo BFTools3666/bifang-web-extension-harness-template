@@ -91,3 +91,11 @@ e2e_hint: disabled
 本表维护工程输入、原文交接与完整创建确认的边界；工程事务结束后，创建入口在下游继续首版，业务操作与依赖由唯一 PRD 记录。
 
 完整创建与工程事务的停止条件以 [实例化 Skill](../SKILL.md#在下游完成首版) 为准；固定问题清单不替代实际需求澄清，CLI 成功不能作为首版交付证据。
+
+## 自建服务选项询问
+
+选择 create 后，按原共享题库顺序逐项询问数据库、缓存、推送、MQ、日志、OSS；已有明确答案直接复用。数据库默认 SQLite，可选 MySQL、Postgres、MongoDB；缓存默认 Memory，可选 Redis；推送、MQ 和 OSS 默认不启用，日志默认命令行。完整选项与默认值只维护在题库，不复制题面。聊天须明确回答接受默认，CLI 仅实际回车时采用默认；无交互 CLI 省略采用题库默认。
+
+字段为 serverDatabase、serverCache、serverPush、serverMq、serverLog、serverStorage，参数为对应的 --server-database、--server-cache、--server-push、--server-mq、--server-log、--server-storage。仅 create 适用；切换服务来源时清除旧选型，不能影响其他已答事实。选型进入最终确认与 Workspace service.options；外部连接地址及秘密在下游实际接入时补齐，不写到前端或确认日志。
+
+生成器按选型从 Go 基础设施模板装配对应源码、配置、依赖和资源生命周期，默认 SQLite、Memory、命令行日志可本地运行；未选能力不装配。外部地址和凭据缺失时明确拒绝启动；完整创建仍需在下游接入真实业务消费者并验证，模板编译不构成外部服务联通证据。
